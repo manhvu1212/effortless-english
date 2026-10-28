@@ -1,4 +1,158 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Effortless English</string>
-    <string name="home_title">Today\'s lesson</string>
+
+    <!-- Navigation -->
+    <string name="tab_today">Hôm nay</string>
+    <string name="tab_library">Thư viện</string>
+    <string name="tab_cards">Từ vựng</string>
+    <string name="tab_stats">Thống kê</string>
+    <string name="title_player">Nghe</string>
+    <string name="title_review">Ôn tập</string>
+    <string name="title_settings">Cài đặt</string>
+    <string name="title_lesson">Bài học</string>
+    <string name="back">Quay lại</string>
+
+    <!-- Track kinds -->
+    <string name="kind_main">Bài chính</string>
+    <string name="kind_vocabulary">Từ vựng</string>
+    <string name="kind_mini_story">Mini-Story</string>
+    <string name="kind_pov">Point of View</string>
+    <string name="kind_commentary">Bình luận</string>
+    <string name="kind_other">Khác</string>
+
+    <!-- Today -->
+    <plurals name="streak_days">
+        <item quantity="one">%d ngày liên tục</item>
+        <item quantity="other">%d ngày liên tục</item>
+    </plurals>
+    <string name="minutes_today">%d phút hôm nay</string>
+    <plurals name="cards_due">
+        <item quantity="one">%d thẻ cần ôn</item>
+        <item quantity="other">%d thẻ cần ôn</item>
+    </plurals>
+    <string name="no_library">Chưa có bài học nào. Hãy chọn thư mục chứa file nghe và file text của khóa học.</string>
+    <string name="all_lessons_done">Bạn đã hoàn thành tất cả các bài. Tuyệt vời!</string>
+    <string name="open_library">Mở thư viện</string>
+    <string name="choose_folder">Chọn thư mục</string>
+    <string name="days_progress">Đã học %1$d/%2$d ngày</string>
+    <string name="ready_for_next">Bạn đã học bài này %d ngày. Nếu đã hiểu gần 100%% mà không cần nhìn transcript, hãy chuyển sang bài tiếp theo. Nếu chưa, cứ học thêm vài ngày nữa.</string>
+    <string name="next_lesson">Chuyển bài tiếp</string>
+    <string name="today_steps">Các bước hôm nay</string>
+    <string name="step_read">Đọc transcript</string>
+    <string name="step_read_hint">Đọc và tra những từ chưa hiểu trước khi nghe</string>
+    <string name="step_mini_story_hint">Trả lời to thành tiếng sau mỗi câu hỏi, dù chỉ 1–2 từ</string>
+    <string name="open">Mở</string>
+
+    <!-- Library -->
+    <string name="lessons_completed">Đã xong %1$d/%2$d bài</string>
+    <string name="days_studied">Đã học %d ngày</string>
+    <string name="lesson_completed">Đã hoàn thành</string>
+    <string name="lesson_not_started">Chưa học</string>
+    <string name="reopen_lesson">Học lại</string>
+    <string name="study_this">Học bài này</string>
+    <string name="mark_completed">Đánh dấu đã xong</string>
+    <string name="has_timing">Karaoke</string>
+    <string name="has_transcript">Có transcript</string>
+
+    <!-- Player -->
+    <string name="nothing_playing">Chưa chọn bài nào. Hãy mở một bài từ Hôm nay hoặc Thư viện.</string>
+    <string name="no_transcript">Bài này chưa có transcript.</string>
+    <string name="loading">Đang tải…</string>
+    <string name="play">Phát</string>
+    <string name="pause">Tạm dừng</string>
+    <string name="previous">Bài trước</string>
+    <string name="next">Bài sau</string>
+    <string name="rewind">Tua lùi</string>
+    <string name="forward">Tua tới</string>
+    <string name="repeat_track">Lặp bài</string>
+    <string name="shadowing">Shadowing: dừng sau mỗi câu để bạn nhại lại</string>
+    <string name="shadow_your_turn">Đến lượt bạn: nhại lại câu vừa nghe</string>
+    <string name="loop_sentence">Lặp câu này</string>
+    <string name="add_card">Thêm thẻ từ vựng</string>
+    <string name="copy">Sao chép</string>
+    <string name="pick_words">Chạm vào các từ để chọn từ hoặc cụm từ:</string>
+    <string name="card_front">Từ / cụm từ</string>
+    <string name="card_back">Nghĩa / ghi chú</string>
+    <string name="card_example">Câu ví dụ</string>
+    <string name="save">Lưu</string>
+    <string name="cancel">Hủy</string>
+    <string name="delete">Xóa</string>
+
+    <!-- Cards -->
+    <plurals name="cards_due_long">
+        <item quantity="one">%1$d thẻ cần ôn hôm nay, tổng cộng %2$d thẻ</item>
+        <item quantity="other">%1$d thẻ cần ôn hôm nay, tổng cộng %2$d thẻ</item>
+    </plurals>
+    <string name="start_review">Bắt đầu ôn</string>
+    <string name="no_cards_hint">Chưa có thẻ nào. Khi nghe, nhấn giữ một câu trong transcript để lưu từ hoặc cụm từ, hoặc bấm + để thêm thủ công.</string>
+    <string name="due_now">Cần ôn</string>
+    <string name="due_on">Ôn ngày %s</string>
+    <string name="edit_card">Sửa thẻ</string>
+    <plurals name="cards_left">
+        <item quantity="one">Còn %d thẻ</item>
+        <item quantity="other">Còn %d thẻ</item>
+    </plurals>
+    <plurals name="review_done">
+        <item quantity="one">Xong! Bạn đã ôn %d lượt.</item>
+        <item quantity="other">Xong! Bạn đã ôn %d lượt.</item>
+    </plurals>
+    <string name="done">Xong</string>
+    <string name="play_sentence">Nghe câu gốc</string>
+    <string name="show_answer">Hiện đáp án</string>
+    <string name="grade_again">Lại</string>
+    <string name="grade_hard">Khó</string>
+    <string name="grade_good">Được</string>
+    <string name="grade_easy">Dễ</string>
+    <string name="interval_now">&lt;1 ngày</string>
+    <string name="interval_days">%d ngày</string>
+
+    <!-- Stats -->
+    <string name="stat_streak">Chuỗi ngày học</string>
+    <string name="stat_longest">Dài nhất: %d ngày</string>
+    <string name="stat_total">Tổng thời gian nghe</string>
+    <string name="stat_hours_minutes">giờ:phút</string>
+    <string name="stat_lessons">Bài đã xong</string>
+    <string name="stat_lessons_sub">trên tổng số bài</string>
+    <string name="stat_cards">Thẻ từ vựng</string>
+    <string name="stat_reviews">%d lượt ôn trong 14 ngày</string>
+    <string name="chart_title">Số phút nghe mỗi ngày (%d ngày gần nhất)</string>
+    <string name="chart_max">Chạm vào một cột để xem số phút. Cao nhất: %d phút</string>
+    <string name="chart_value">%1$s: %2$d phút</string>
+    <string name="chart_summary">Tổng %1$d phút nghe trong %2$d ngày gần nhất</string>
+    <string name="today">Hôm nay</string>
+
+    <!-- Settings -->
+    <string name="settings_content">Nội dung khóa học</string>
+    <string name="content_none">Chưa chọn thư mục.</string>
+    <plurals name="content_tracks">
+        <item quantity="one">%d file nghe trong thư viện</item>
+        <item quantity="other">%d file nghe trong thư viện</item>
+    </plurals>
+    <string name="content_hint">Mỗi thư mục con chứa file mp3 là một bài. Transcript là file .txt cùng tên; file .timing.json cùng tên sẽ bật chế độ karaoke.</string>
+    <string name="rescan">Quét lại</string>
+    <string name="scan_result">%1$d khóa, %2$d bài, %3$d file nghe. %4$d có transcript, %5$d có karaoke.</string>
+    <string name="scan_failed">Không quét được: %s</string>
+    <string name="settings_plan">Lộ trình học</string>
+    <string name="days_per_lesson">Số ngày học mỗi bài</string>
+    <string name="settings_reminders">Nhắc lịch học</string>
+    <string name="add_reminder">Thêm giờ nhắc</string>
+    <string name="nag_setting">Nhắc lại buổi tối nếu hôm đó chưa học</string>
+    <string name="settings_player">Trình phát</string>
+    <string name="rewind_seconds">Tua lùi / tới mỗi lần</string>
+    <string name="shadow_gap">Thời gian dừng khi shadowing (so với độ dài câu)</string>
+
+    <!-- Notifications -->
+    <string name="channel_reminders">Nhắc lịch học</string>
+    <string name="remind_title">Đến giờ học tiếng Anh</string>
+    <plurals name="remind_steps">
+        <item quantity="one">%2$s: còn %1$d bước hôm nay</item>
+        <item quantity="other">%2$s: còn %1$d bước hôm nay</item>
+    </plurals>
+    <plurals name="remind_cards">
+        <item quantity="one">%d thẻ từ vựng cần ôn</item>
+        <item quantity="other">%d thẻ từ vựng cần ôn</item>
+    </plurals>
+    <string name="nag_title">Hôm nay bạn chưa nghe bài nào</string>
+    <string name="nag_text">Chỉ cần 15 phút trước khi ngủ để giữ chuỗi ngày học.</string>
 </resources>

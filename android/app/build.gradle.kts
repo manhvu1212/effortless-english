@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 // Signing material comes from the user-level Gradle properties
@@ -15,7 +16,7 @@ val keystoreAlias = "effortless"
 
 android {
     namespace = "io.github.manhvu1212.effortless"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "io.github.manhvu1212.effortless"
@@ -27,7 +28,7 @@ android {
     }
 
     androidResources {
-        localeFilters += listOf("en", "vi")
+        localeFilters += listOf("vi")
     }
 
     signingConfigs {
@@ -103,4 +104,10 @@ dependencies {
     ksp(libs.androidx.room.compiler)
 
     implementation(libs.androidx.datastore.preferences)
+
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.session)
+    implementation(libs.kotlinx.serialization.json)
+
+    testImplementation(libs.junit)
 }
