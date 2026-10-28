@@ -21,6 +21,8 @@ data class Settings(
     val nagTime: Int = 21 * 60 + 30,
     val contentRootUri: String? = null,
     val pinnedLessonId: String? = null,
+    /** Track played last, for resuming playback from the car or a headset button. */
+    val lastTrackId: String? = null,
     val speed: Float = 1f,
     val rewindSeconds: Int = 5,
     val shadowGapPercent: Int = 100,
@@ -50,6 +52,7 @@ class SettingsRepository(context: Context) {
             nagTime = this[NAG_TIME] ?: defaults.nagTime,
             contentRootUri = this[CONTENT_ROOT],
             pinnedLessonId = this[PINNED_LESSON],
+            lastTrackId = this[LAST_TRACK],
             speed = this[SPEED] ?: defaults.speed,
             rewindSeconds = this[REWIND_SECONDS] ?: defaults.rewindSeconds,
             shadowGapPercent = this[SHADOW_GAP] ?: defaults.shadowGapPercent,
@@ -63,6 +66,7 @@ class SettingsRepository(context: Context) {
         this[NAG_TIME] = s.nagTime
         if (s.contentRootUri != null) this[CONTENT_ROOT] = s.contentRootUri else remove(CONTENT_ROOT)
         if (s.pinnedLessonId != null) this[PINNED_LESSON] = s.pinnedLessonId else remove(PINNED_LESSON)
+        if (s.lastTrackId != null) this[LAST_TRACK] = s.lastTrackId else remove(LAST_TRACK)
         this[SPEED] = s.speed
         this[REWIND_SECONDS] = s.rewindSeconds
         this[SHADOW_GAP] = s.shadowGapPercent
@@ -75,6 +79,7 @@ class SettingsRepository(context: Context) {
         val NAG_TIME = intPreferencesKey("nag_time")
         val CONTENT_ROOT = stringPreferencesKey("content_root")
         val PINNED_LESSON = stringPreferencesKey("pinned_lesson")
+        val LAST_TRACK = stringPreferencesKey("last_track")
         val SPEED = floatPreferencesKey("speed")
         val REWIND_SECONDS = intPreferencesKey("rewind_seconds")
         val SHADOW_GAP = intPreferencesKey("shadow_gap_percent")

@@ -14,6 +14,9 @@ interface LibraryDao {
     @Query("SELECT * FROM course ORDER BY position")
     fun courses(): Flow<List<CourseEntity>>
 
+    @Query("SELECT * FROM course ORDER BY position")
+    suspend fun coursesOnce(): List<CourseEntity>
+
     @Query("SELECT * FROM course WHERE id = :id")
     fun course(id: String): Flow<CourseEntity?>
 
@@ -31,6 +34,9 @@ interface LibraryDao {
 
     @Query("SELECT * FROM lesson WHERE courseId = :courseId ORDER BY position")
     fun lessons(courseId: String): Flow<List<LessonEntity>>
+
+    @Query("SELECT * FROM lesson WHERE courseId = :courseId ORDER BY position")
+    suspend fun lessonsOnce(courseId: String): List<LessonEntity>
 
     @Query("SELECT * FROM lesson WHERE id = :id")
     fun lesson(id: String): Flow<LessonEntity?>

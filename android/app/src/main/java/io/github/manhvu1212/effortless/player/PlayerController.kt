@@ -8,6 +8,7 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
+import androidx.media3.common.Timeline
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
@@ -30,6 +31,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+data class Playlist(val items: List<MediaItem>, val index: Int, val startMs: Long)
+
+/** Speeds the car's speed button steps through. */
+private val CAR_SPEEDS = listOf(0.75f, 0.85f, 1f, 1.1f, 1.25f)
 
 data class PlayerState(
     val lesson: LessonEntity? = null,
@@ -96,7 +102,12 @@ class PlayerController(
             }
         }
 
+        override fun onTimelineChanged(timeline: Timeline, reason: Int) {
+            if (reason == Player.TIMELINE_CHANGE_REASON_PLAYLIST_CHANGED) syncPlaylist()
+        }
+
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            mediaItem?.mediaId?.let { id -> scope.launch { settings.update { it.copy(lastTrackId = id) } } }
             val previous = _state.value.track
             if (previous != null &&
                 (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO || reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT)
@@ -137,27 +148,91 @@ class PlayerController(
             return
         }
         scope.launch(Dispatchers.Main) {
-            val resume = withContext(Dispatchers.IO) {
-                tracks[index].let { db.library().ensureTrackState(it.id); db.library().trackState(it.id) }
-            }
+            val playlist = playlist(lesson, tracks, index)
             val speed = settings.current().speed
-            val items = tracks.map { track ->
-                MediaItem.Builder()
-                    .setMediaId(track.id)
-                    .setUri(Uri.parse(track.audioUri))
-                    .setMediaMetadata(
-                        MediaMetadata.Builder().setTitle(track.title).setArtist(lesson.title).build()
-                    )
-                    .build()
-            }
             _state.update { PlayerState(lesson = lesson, tracks = tracks, index = index, speed = speed, shadowing = it.shadowing) }
-            val start = resume?.takeIf { it.durationMs == 0L || it.resumeMs < it.durationMs - 3_000 }?.resumeMs ?: 0
-            player.setMediaItems(items, index, start)
+            player.setMediaItems(playlist.items, playlist.index, playlist.startMs)
             player.setPlaybackSpeed(speed)
             player.repeatMode = Player.REPEAT_MODE_OFF
             player.prepare()
-            loadTranscript()
             if (play) play()
+        }
+    }
+
+    /** A lesson's tracks as player items, starting at [index] where that track was left. */
+    suspend fun playlist(lesson: LessonEntity, tracks: List<TrackEntity>, index: Int): Playlist = withContext(Dispatchers.IO) {
+        val track = tracks[index]
+        db.library().ensureTrackState(track.id)
+        val resume = db.library().trackState(track.id)
+        val start = resume?.takeIf { it.durationMs == 0L || it.resumeMs < it.durationMs - 3_000 }?.resumeMs ?: 0
+        Playlist(tracks.map { mediaItem(it, lesson) }, index, start)
+    }
+
+    suspend fun playlistForTrack(trackId: String): Playlist? {
+        val track = db.library().track(trackId) ?: return null
+        val lesson = db.library().lessonOnce(track.lessonId) ?: return null
+        val tracks = db.library().tracksOnce(lesson.id)
+        return playlist(lesson, tracks, tracks.indexOfFirst { it.id == trackId }.coerceAtLeast(0))
+    }
+
+    /** Starts at the track played last when it belongs to this lesson, otherwise at the first one. */
+    suspend fun playlistForLesson(lessonId: String): Playlist? {
+        val lesson = db.library().lessonOnce(lessonId) ?: return null
+        val tracks = db.library().tracksOnce(lessonId).ifEmpty { return null }
+        val last = settings.current().lastTrackId
+        return playlist(lesson, tracks, tracks.indexOfFirst { it.id == last }.coerceAtLeast(0))
+    }
+
+    /** What to play when nothing is chosen: the track played last, else today's lesson. */
+    suspend fun resumption(): Playlist? =
+        settings.current().lastTrackId?.let { playlistForTrack(it) }
+            ?: study.currentLesson()?.let { playlistForLesson(it.id) }
+
+    /** Lesson or track titles containing [query]; a blank query means [resumption]. */
+    suspend fun playlistForSearch(query: String): Playlist? {
+        if (query.isBlank()) return resumption()
+        val lessons = db.library().allLessonsOnce()
+        lessons.firstOrNull { it.title.contains(query, ignoreCase = true) }?.let { return playlistForLesson(it.id) }
+        for (lesson in lessons) {
+            val track = db.library().tracksOnce(lesson.id).firstOrNull { it.title.contains(query, ignoreCase = true) }
+            if (track != null) return playlistForTrack(track.id)
+        }
+        return null
+    }
+
+    private fun mediaItem(track: TrackEntity, lesson: LessonEntity): MediaItem =
+        MediaItem.Builder()
+            .setMediaId(track.id)
+            .setUri(Uri.parse(track.audioUri))
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setTitle(track.title)
+                    .setArtist(lesson.title)
+                    .setAlbumTitle(lesson.title)
+                    .setIsBrowsable(false)
+                    .setIsPlayable(true)
+                    .setMediaType(MediaMetadata.MEDIA_TYPE_PODCAST_EPISODE)
+                    .setArtworkData(Artwork.png(context), MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+                    .build()
+            )
+            .build()
+
+    /**
+     * Brings [state] in line with the player's playlist after something else set it, such as
+     * Android Auto through the media session.
+     */
+    private fun syncPlaylist() {
+        val ids = (0 until player.mediaItemCount).map { player.getMediaItemAt(it).mediaId }
+        if (ids.isEmpty() || ids == _state.value.tracks.map { it.id }) return
+        scope.launch(Dispatchers.Main) {
+            val tracks = withContext(Dispatchers.IO) { ids.mapNotNull { db.library().track(it) } }
+            val lesson = tracks.firstOrNull()?.let { withContext(Dispatchers.IO) { db.library().lessonOnce(it.lessonId) } } ?: return@launch
+            if ((0 until player.mediaItemCount).map { player.getMediaItemAt(it).mediaId } != ids) return@launch
+            val speed = settings.current().speed
+            player.setPlaybackSpeed(speed)
+            player.repeatMode = Player.REPEAT_MODE_OFF
+            _state.update { PlayerState(lesson = lesson, tracks = tracks, index = player.currentMediaItemIndex, speed = speed, shadowing = it.shadowing) }
+            loadTranscript()
         }
     }
 
@@ -202,6 +277,11 @@ class PlayerController(
     fun previous() {
         if (player.currentPosition > 3_000 || !player.hasPreviousMediaItem()) seekTo(0)
         else selectTrack(player.currentMediaItemIndex - 1)
+    }
+
+    fun cycleSpeed() {
+        val current = _state.value.speed
+        setSpeed(CAR_SPEEDS.firstOrNull { it > current + 0.01f } ?: CAR_SPEEDS.first())
     }
 
     fun setSpeed(speed: Float) {

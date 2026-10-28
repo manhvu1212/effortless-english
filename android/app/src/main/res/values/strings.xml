@@ -142,6 +142,12 @@
     <string name="rewind_seconds">Tua lùi / tới mỗi lần</string>
     <string name="shadow_gap">Thời gian dừng khi shadowing (so với độ dài câu)</string>
 
+    <!-- Android Auto -->
+    <string name="car_courses">Khóa học</string>
+    <string name="car_speed">Tốc độ %s</string>
+    <string name="car_shadowing_on">Tắt shadowing</string>
+    <string name="car_shadowing_off">Bật shadowing</string>
+
     <!-- Notifications -->
     <string name="channel_reminders">Nhắc lịch học</string>
     <string name="remind_title">Đến giờ học tiếng Anh</string>

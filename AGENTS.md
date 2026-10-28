@@ -12,9 +12,16 @@ owner's Google Drive is planned.
 - `android/` — Android app (Gradle Kotlin DSL, Compose, Room, Media3, Material 3).
   - `data/content/` — `LibraryScanner` turns a content folder into courses/lessons/tracks; `Transcript` parses text and timing files.
   - `data/db/` — Room entities and DAOs. Library tables are replaced on every scan; progress, cards and track state live in separate tables keyed by path-derived ids, so a rescan keeps them.
-  - `player/` — `PlayerController` owns the single ExoPlayer (A-B loop, shadowing, listening time); `PlaybackService` wraps it in a MediaSession for background playback.
+  - `player/` — `PlayerController` owns the single ExoPlayer (A-B loop, shadowing, listening time) and builds lesson playlists; `PlaybackService` (a `MediaLibraryService`) wraps it for background playback, the media notification and Android Auto.
   - `reminders/` — inexact daily alarms re-armed by the receiver, on boot and on time changes.
 - `tools/` — PC-side scripts (planned): Whisper alignment that writes the timing files.
+
+## Android Auto
+- Audio-only by design (no transcript in the car). `MediaTree` is the browse tree: tabs `@today` (current lesson's tracks) and `@courses` (course → lesson → tracks). Folder ids start with `@`; playable items use the plain track id, the same id the player uses.
+- Choosing a track queues its whole lesson from where it was left; a voice query matches lesson then track titles; a blank query or an id-less item resumes (`PlayerController.resumption`).
+- Whatever the car sets on the player, `PlayerController.syncPlaylist` mirrors into the phone's state, so listening time and steps are recorded the same way.
+- Custom buttons (also in the notification): rewind/forward by the configured seconds, cycle speed, toggle shadowing. They are passed on connect as well as updated, since the car can connect before the first update.
+- Tested by `CarMediaLibraryTest` (a `MediaBrowser` acting as the car). The emulator's Android Auto is a stub without Play sign-in, so the Desktop Head Unit has not been used yet.
 
 ## Content folder
 - Every folder holding audio files (mp3, m4a, wav…) is a lesson; its top-level folder under the picked root is the course.
@@ -32,6 +39,7 @@ Timing file: `{"version":1,"sentences":[{"s":<startMs>,"e":<endMs>,"t":"<text>",
 
 ## Build & test
 - From `android/`: `gradlew.bat assembleDebug`, `gradlew.bat testDebugUnitTest`.
+- Instrumented (needs a device or emulator; replaces the app's library data and uninstalls afterwards): `gradlew.bat connectedDebugAndroidTest`.
 - Release signing reads `NMV_KEYSTORE` / `NMV_KEYSTORE_PASS` from the user-level `~/.gradle/gradle.properties`; the alias is `effortless`.
 
 ## Conventions
