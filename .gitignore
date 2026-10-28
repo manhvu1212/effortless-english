@@ -1,0 +1,30 @@
+.DS_Store
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Android
+android/.gradle/
+android/.kotlin/
+android/build/
+android/app/build/
+android/local.properties
+
+# Signing material (anywhere in the tree)
+*.jks
+*.keystore
+*.p12
+*.pem
+
+# Course content is copyrighted: never commit it
+content/
+*.mp3
+*.m4a
+*.pdf
+
+# Python tools
+tools/.venv/
+__pycache__/
