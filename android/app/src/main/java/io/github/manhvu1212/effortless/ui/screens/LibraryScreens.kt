@@ -39,9 +39,11 @@ import io.github.manhvu1212.effortless.data.db.LessonEntity
 import io.github.manhvu1212.effortless.data.db.LessonProgressEntity
 import io.github.manhvu1212.effortless.data.db.TrackEntity
 import io.github.manhvu1212.effortless.data.db.TrackStateEntity
+import io.github.manhvu1212.effortless.data.settings.ContentSource
 import io.github.manhvu1212.effortless.ui.appViewModel
 import io.github.manhvu1212.effortless.ui.formatClock
 import io.github.manhvu1212.effortless.ui.label
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -98,13 +100,14 @@ fun LibraryScreen(contentPadding: PaddingValues, onOpenCourse: (String) -> Unit,
 }
 
 data class CourseUi(
+    val drive: Boolean = false,
     val course: CourseEntity? = null,
     val lessons: List<LessonEntity> = emptyList(),
     val progress: Map<String, LessonProgressEntity> = emptyMap(),
     val currentId: String? = null,
 )
 
-class CourseViewModel(c: AppContainer, courseId: String) : ViewModel() {
+class CourseViewModel(private val c: AppContainer, courseId: String) : ViewModel() {
     val ui: StateFlow<CourseUi> = combine(
         c.db.library().course(courseId),
         c.db.library().lessons(courseId),
@@ -113,12 +116,15 @@ class CourseViewModel(c: AppContainer, courseId: String) : ViewModel() {
         c.settings.settings,
     ) { course, lessons, all, progress, settings ->
         CourseUi(
+            drive = settings.contentSource == ContentSource.DRIVE,
             course = course,
             lessons = lessons,
             progress = progress.associateBy { it.lessonId },
             currentId = c.study.currentLesson(all, progress, settings.pinnedLessonId)?.id,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CourseUi())
+
+    fun downloadAll() = viewModelScope.launch { c.drive.enqueue(ui.value.lessons.map { it.id }) }
 }
 
 @Composable
@@ -130,6 +136,11 @@ fun CourseScreen(contentPadding: PaddingValues, courseId: String, onOpenLesson: 
         verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.padding(contentPadding),
     ) {
+        if (ui.drive && ui.lessons.isNotEmpty()) {
+            item {
+                OutlinedButton(onClick = { vm.downloadAll() }) { Text(stringResource(R.string.download_course)) }
+            }
+        }
         items(ui.lessons, key = { it.id }) { lesson ->
             val progress = ui.progress[lesson.id]
             Card(Modifier.fillMaxWidth().clickable { onOpenLesson(lesson.id) }) {
@@ -157,6 +168,8 @@ fun CourseScreen(contentPadding: PaddingValues, courseId: String, onOpenLesson: 
 }
 
 data class LessonUi(
+    val drive: Boolean = false,
+    val downloaded: Set<String> = emptySet(),
     val lesson: LessonEntity? = null,
     val tracks: List<TrackEntity> = emptyList(),
     val states: Map<String, TrackStateEntity> = emptyMap(),
@@ -171,15 +184,32 @@ class LessonViewModel(private val c: AppContainer, private val lessonId: String)
         c.settings.settings,
     ) { lessons, progress, settings -> c.study.currentLesson(lessons, progress, settings.pinnedLessonId)?.id }
 
-    val ui: StateFlow<LessonUi> = combine(
+    private val base = combine(
         c.db.library().lesson(lessonId),
         c.db.library().tracks(lessonId),
         c.db.library().trackStates(lessonId),
         c.db.study().progress(lessonId),
         currentId,
     ) { lesson, tracks, states, progress, current ->
-        LessonUi(lesson, tracks, states.associateBy { it.trackId }, progress, current == lessonId)
+        LessonUi(lesson = lesson, tracks = tracks, states = states.associateBy { it.trackId }, progress = progress, isCurrent = current == lessonId)
+    }
+
+    private val refresh = MutableStateFlow(0)
+
+    /** Re-checked whenever the download queue changes or a download is deleted. */
+    val ui: StateFlow<LessonUi> = combine(base, c.settings.settings, c.drive.downloading(), refresh) { ui, settings, _, _ ->
+        ui.copy(
+            drive = settings.contentSource == ContentSource.DRIVE,
+            downloaded = ui.tracks.filter { c.drive.isDownloaded(it) }.map { it.id }.toSet(),
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LessonUi())
+
+    fun download() = viewModelScope.launch { c.drive.enqueue(listOf(lessonId)) }
+
+    fun deleteDownload() = viewModelScope.launch {
+        c.drive.deleteLesson(lessonId)
+        refresh.value++
+    }
 
     fun play(index: Int) {
         val s = ui.value
@@ -214,6 +244,16 @@ fun LessonScreen(contentPadding: PaddingValues, lessonId: String, onOpenPlayer: 
                     },
                     style = MaterialTheme.typography.bodyMedium,
                 )
+                if (ui.drive && ui.tracks.isNotEmpty()) {
+                    val all = ui.tracks.all { it.id in ui.downloaded }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (all) {
+                            OutlinedButton(onClick = { vm.deleteDownload() }) { Text(stringResource(R.string.delete_download)) }
+                        } else {
+                            OutlinedButton(onClick = { vm.download() }) { Text(stringResource(R.string.download_lesson)) }
+                        }
+                    }
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (progress?.completedDay != null) {
                         OutlinedButton(onClick = { vm.reopen() }) { Text(stringResource(R.string.reopen_lesson)) }
@@ -232,6 +272,7 @@ fun LessonScreen(contentPadding: PaddingValues, lessonId: String, onOpenPlayer: 
                         Text(stringResource(track.kind.label()), style = MaterialTheme.typography.titleSmall)
                         Text(track.title, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         val details = buildList {
+                            if (ui.drive) add(stringResource(if (track.id in ui.downloaded) R.string.downloaded else R.string.not_downloaded))
                             if (state != null && state.durationMs > 0) add(formatClock(state.durationMs))
                             if (track.timingUri != null) add(stringResource(R.string.has_timing))
                             else if (track.transcriptUri != null) add(stringResource(R.string.has_transcript))

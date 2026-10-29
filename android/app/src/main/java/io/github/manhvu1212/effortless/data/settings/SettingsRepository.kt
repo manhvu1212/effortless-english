@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
+enum class ContentSource { FOLDER, DRIVE }
+
 /** Times of day are minutes after midnight. */
 data class Settings(
     val daysPerLesson: Int = 7,
@@ -20,6 +22,13 @@ data class Settings(
     val nagEnabled: Boolean = true,
     val nagTime: Int = 21 * 60 + 30,
     val contentRootUri: String? = null,
+    val contentSource: ContentSource = ContentSource.FOLDER,
+    /** The Drive folder holding manifest.json, found by name when connecting. */
+    val driveFolderId: String? = null,
+    val driveFolderName: String = "Effortless English App",
+    val wifiOnly: Boolean = true,
+    /** Lessons after the current one whose audio is downloaded ahead. */
+    val aheadLessons: Int = 2,
     val pinnedLessonId: String? = null,
     /** Track played last, for resuming playback from the car or a headset button. */
     val lastTrackId: String? = null,
@@ -51,6 +60,11 @@ class SettingsRepository(context: Context) {
             nagEnabled = this[NAG_ENABLED] ?: defaults.nagEnabled,
             nagTime = this[NAG_TIME] ?: defaults.nagTime,
             contentRootUri = this[CONTENT_ROOT],
+            contentSource = this[CONTENT_SOURCE]?.let { runCatching { ContentSource.valueOf(it) }.getOrNull() } ?: defaults.contentSource,
+            driveFolderId = this[DRIVE_FOLDER_ID],
+            driveFolderName = this[DRIVE_FOLDER_NAME] ?: defaults.driveFolderName,
+            wifiOnly = this[WIFI_ONLY] ?: defaults.wifiOnly,
+            aheadLessons = this[AHEAD_LESSONS] ?: defaults.aheadLessons,
             pinnedLessonId = this[PINNED_LESSON],
             lastTrackId = this[LAST_TRACK],
             speed = this[SPEED] ?: defaults.speed,
@@ -65,6 +79,11 @@ class SettingsRepository(context: Context) {
         this[NAG_ENABLED] = s.nagEnabled
         this[NAG_TIME] = s.nagTime
         if (s.contentRootUri != null) this[CONTENT_ROOT] = s.contentRootUri else remove(CONTENT_ROOT)
+        this[CONTENT_SOURCE] = s.contentSource.name
+        if (s.driveFolderId != null) this[DRIVE_FOLDER_ID] = s.driveFolderId else remove(DRIVE_FOLDER_ID)
+        this[DRIVE_FOLDER_NAME] = s.driveFolderName
+        this[WIFI_ONLY] = s.wifiOnly
+        this[AHEAD_LESSONS] = s.aheadLessons
         if (s.pinnedLessonId != null) this[PINNED_LESSON] = s.pinnedLessonId else remove(PINNED_LESSON)
         if (s.lastTrackId != null) this[LAST_TRACK] = s.lastTrackId else remove(LAST_TRACK)
         this[SPEED] = s.speed
@@ -78,6 +97,11 @@ class SettingsRepository(context: Context) {
         val NAG_ENABLED = booleanPreferencesKey("nag_enabled")
         val NAG_TIME = intPreferencesKey("nag_time")
         val CONTENT_ROOT = stringPreferencesKey("content_root")
+        val CONTENT_SOURCE = stringPreferencesKey("content_source")
+        val DRIVE_FOLDER_ID = stringPreferencesKey("drive_folder_id")
+        val DRIVE_FOLDER_NAME = stringPreferencesKey("drive_folder_name")
+        val WIFI_ONLY = booleanPreferencesKey("wifi_only")
+        val AHEAD_LESSONS = intPreferencesKey("ahead_lessons")
         val PINNED_LESSON = stringPreferencesKey("pinned_lesson")
         val LAST_TRACK = stringPreferencesKey("last_track")
         val SPEED = floatPreferencesKey("speed")

@@ -110,6 +110,10 @@ dependencies {
     implementation(libs.androidx.media3.session)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.guava)
+    implementation(libs.kotlinx.coroutines.play.services)
+    implementation(libs.play.services.auth)
+    implementation(libs.okhttp)
+    implementation(libs.androidx.work.runtime)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)

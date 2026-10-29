@@ -142,6 +142,28 @@
     <string name="rewind_seconds">Tua lùi / tới mỗi lần</string>
     <string name="shadow_gap">Thời gian dừng khi shadowing (so với độ dài câu)</string>
 
+    <!-- Google Drive -->
+    <string name="settings_drive">Google Drive</string>
+    <string name="drive_hint">Nội dung đã xử lý nằm trong My Drive. Kết nối để app tự tải bài về máy (chỉ xin quyền đọc).</string>
+    <string name="drive_folder">Tên thư mục trên Drive</string>
+    <string name="drive_connect">Kết nối Google Drive</string>
+    <string name="drive_sync">Đồng bộ lại</string>
+    <string name="drive_connected">Đang dùng thư mục \"%1$s\". Đã tải về máy: %2$s.</string>
+    <string name="drive_error_client">Chưa cấu hình OAuth client cho app (sai package hoặc SHA-1).</string>
+    <string name="drive_error_cancelled">Bạn đã hủy cấp quyền.</string>
+    <string name="drive_error_folder">Không tìm thấy thư mục \"%s\" trong Drive.</string>
+    <string name="drive_error_auth">Chưa được cấp quyền đọc Google Drive.</string>
+    <string name="wifi_only">Chỉ tải khi có Wi-Fi</string>
+    <string name="ahead_lessons">Tự tải trước bao nhiêu bài sau bài hiện tại</string>
+    <string name="channel_downloads">Tải bài học</string>
+    <string name="downloading_audio">Đang tải file nghe…</string>
+    <string name="download_progress">%1$s / %2$s</string>
+    <string name="download_lesson">Tải bài này</string>
+    <string name="download_course">Tải cả khóa</string>
+    <string name="delete_download">Xóa bản đã tải</string>
+    <string name="not_downloaded">Chưa tải · nghe trực tuyến</string>
+    <string name="downloaded">Đã tải</string>
+
     <!-- Android Auto -->
     <string name="car_courses">Khóa học</string>
     <string name="car_speed">Tốc độ %s</string>

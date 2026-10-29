@@ -1,8 +1,11 @@
 package io.github.manhvu1212.effortless.ui.screens
 
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,6 +28,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -47,7 +51,14 @@ import androidx.lifecycle.viewModelScope
 import io.github.manhvu1212.effortless.AppContainer
 import io.github.manhvu1212.effortless.R
 import io.github.manhvu1212.effortless.data.ScanSummary
+import io.github.manhvu1212.effortless.data.settings.ContentSource
 import io.github.manhvu1212.effortless.data.settings.Settings
+import io.github.manhvu1212.effortless.drive.DownloadWorker
+import io.github.manhvu1212.effortless.drive.FolderNotFoundException
+import io.github.manhvu1212.effortless.drive.NotAuthorizedException
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.CommonStatusCodes
+import kotlinx.coroutines.Dispatchers
 import io.github.manhvu1212.effortless.reminders.ReminderScheduler
 import io.github.manhvu1212.effortless.ui.appViewModel
 import io.github.manhvu1212.effortless.ui.formatMinuteOfDay
@@ -74,9 +85,55 @@ class SettingsViewModel(private val c: AppContainer, private val context: Contex
     private val _scan = MutableStateFlow<ScanState>(ScanState.Idle)
     val scan: StateFlow<ScanState> = _scan.asStateFlow()
 
+    val downloading: StateFlow<Boolean> = c.drive.downloading()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    private val _downloadedBytes = MutableStateFlow(0L)
+    val downloadedBytes: StateFlow<Long> = _downloadedBytes.asStateFlow()
+
+    private var pendingFolder: String? = null
+
+    init {
+        refreshStorage()
+    }
+
+    fun refreshStorage() = viewModelScope.launch(Dispatchers.IO) { _downloadedBytes.value = c.drive.downloadedBytes() }
+
     fun import(uri: Uri) = runScan { c.library.importTree(uri) }
 
-    fun rescan() = runScan { c.library.rescan() }
+    fun rescan() = runScan {
+        if (settings.value.contentSource == ContentSource.DRIVE) c.drive.sync() else c.library.rescan()
+    }
+
+    /** Asks for Drive access first; [launch] shows Google's consent screen when it is needed. */
+    fun connectDrive(folderName: String, launch: (PendingIntent) -> Unit) {
+        if (_scan.value == ScanState.Running) return
+        _scan.value = ScanState.Running
+        viewModelScope.launch {
+            val result = runCatching { c.drive.auth.authorize() }.getOrElse {
+                _scan.value = failure(it)
+                return@launch
+            }
+            val consent = result.pendingIntent
+            _scan.value = ScanState.Idle
+            if (result.hasResolution() && consent != null) {
+                pendingFolder = folderName
+                launch(consent)
+            } else {
+                runScan { c.drive.connect(folderName) }
+            }
+        }
+    }
+
+    fun onConsent(data: Intent?) {
+        val folder = pendingFolder ?: return
+        pendingFolder = null
+        runCatching { c.drive.auth.resultFromIntent(data) }.exceptionOrNull()?.let {
+            _scan.value = failure(it)
+            return
+        }
+        runScan { c.drive.connect(folder) }
+    }
 
     private fun runScan(block: suspend () -> ScanSummary?) {
         if (_scan.value == ScanState.Running) return
@@ -84,10 +141,21 @@ class SettingsViewModel(private val c: AppContainer, private val context: Contex
         viewModelScope.launch {
             _scan.value = runCatching { block() }.fold(
                 onSuccess = { summary -> summary?.let { ScanState.Done(it) } ?: ScanState.Idle },
-                onFailure = { ScanState.Failed(it.message ?: it.javaClass.simpleName) },
+                onFailure = { failure(it) },
             )
+            refreshStorage()
         }
     }
+
+    private fun failure(e: Throwable): ScanState.Failed = ScanState.Failed(
+        when {
+            e is ApiException && e.statusCode == CommonStatusCodes.DEVELOPER_ERROR -> context.getString(R.string.drive_error_client)
+            e is ApiException && e.statusCode == CommonStatusCodes.CANCELED -> context.getString(R.string.drive_error_cancelled)
+            e is FolderNotFoundException -> context.getString(R.string.drive_error_folder, e.name)
+            e is NotAuthorizedException -> context.getString(R.string.drive_error_auth)
+            else -> e.message ?: e.javaClass.simpleName
+        }
+    )
 
     fun update(rescheduleReminders: Boolean = false, transform: (Settings) -> Settings) = viewModelScope.launch {
         c.settings.update(transform)
@@ -106,6 +174,13 @@ fun SettingsScreen(contentPadding: PaddingValues) {
     val pickFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) vm.import(uri)
     }
+    val consent = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
+        vm.onConsent(result.data)
+    }
+    val downloading by vm.downloading.collectAsStateWithLifecycle()
+    val downloadedBytes by vm.downloadedBytes.collectAsStateWithLifecycle()
+    var folderName by remember(settings.driveFolderName) { mutableStateOf(settings.driveFolderName) }
+    val drive = settings.contentSource == ContentSource.DRIVE
 
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
@@ -113,37 +188,69 @@ fun SettingsScreen(contentPadding: PaddingValues) {
         modifier = Modifier.padding(contentPadding),
     ) {
         item {
+            Section(stringResource(R.string.settings_drive)) {
+                Text(
+                    if (drive) stringResource(R.string.drive_connected, settings.driveFolderName, DownloadWorker.mb(downloadedBytes))
+                    else stringResource(R.string.drive_hint),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                if (!drive) {
+                    OutlinedTextField(
+                        folderName,
+                        { folderName = it },
+                        label = { Text(stringResource(R.string.drive_folder)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (drive) {
+                        Button(onClick = vm::rescan, enabled = scan != ScanState.Running) { Text(stringResource(R.string.drive_sync)) }
+                    } else {
+                        Button(
+                            onClick = {
+                                vm.connectDrive(folderName) { intent ->
+                                    consent.launch(IntentSenderRequest.Builder(intent.intentSender).build())
+                                }
+                            },
+                            enabled = scan != ScanState.Running && folderName.isNotBlank(),
+                        ) { Text(stringResource(R.string.drive_connect)) }
+                    }
+                    if (scan == ScanState.Running) CircularProgressIndicator(Modifier.padding(start = 8.dp))
+                }
+                ScanResult(scan)
+                if (drive) {
+                    if (downloading) {
+                        Text(stringResource(R.string.downloading_audio), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.wifi_only), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                        Switch(settings.wifiOnly, { on -> vm.update { it.copy(wifiOnly = on) } })
+                    }
+                    Text(stringResource(R.string.ahead_lessons), style = MaterialTheme.typography.bodyMedium)
+                    ChoiceRow(listOf(0, 1, 2, 3, 5), settings.aheadLessons, { "$it" }) { n ->
+                        vm.update { it.copy(aheadLessons = n) }
+                    }
+                }
+            }
+        }
+        item {
             Section(stringResource(R.string.settings_content)) {
                 Text(
-                    if (settings.contentRootUri == null) stringResource(R.string.content_none)
+                    if (settings.contentRootUri == null || drive) stringResource(R.string.content_none)
                     else pluralStringResource(R.plurals.content_tracks, trackCount, trackCount),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Text(stringResource(R.string.content_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Button(onClick = { pickFolder.launch(null) }, enabled = scan != ScanState.Running) {
+                    OutlinedButton(onClick = { pickFolder.launch(null) }, enabled = scan != ScanState.Running) {
                         Text(stringResource(R.string.choose_folder))
                     }
-                    if (settings.contentRootUri != null) {
+                    if (settings.contentRootUri != null && !drive) {
                         OutlinedButton(onClick = vm::rescan, enabled = scan != ScanState.Running) { Text(stringResource(R.string.rescan)) }
                     }
-                    if (scan == ScanState.Running) CircularProgressIndicator(Modifier.padding(start = 8.dp))
                 }
-                when (val s = scan) {
-                    is ScanState.Done -> Text(
-                        stringResource(
-                            R.string.scan_result,
-                            s.summary.courses,
-                            s.summary.lessons,
-                            s.summary.tracks,
-                            s.summary.withTranscript,
-                            s.summary.withTiming,
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                    is ScanState.Failed -> Text(stringResource(R.string.scan_failed, s.message), color = MaterialTheme.colorScheme.error)
-                    else -> Unit
-                }
+                if (!drive) ScanResult(scan)
             }
         }
         item {
@@ -216,6 +323,25 @@ fun SettingsScreen(contentPadding: PaddingValues) {
                 pickTimeFor = null
             },
         )
+    }
+}
+
+@Composable
+private fun ScanResult(scan: ScanState) {
+    when (scan) {
+        is ScanState.Done -> Text(
+            stringResource(
+                R.string.scan_result,
+                scan.summary.courses,
+                scan.summary.lessons,
+                scan.summary.tracks,
+                scan.summary.withTranscript,
+                scan.summary.withTiming,
+            ),
+            style = MaterialTheme.typography.bodySmall,
+        )
+        is ScanState.Failed -> Text(stringResource(R.string.scan_failed, scan.message), color = MaterialTheme.colorScheme.error)
+        else -> Unit
     }
 }
 

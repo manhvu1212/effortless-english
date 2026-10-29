@@ -5,8 +5,8 @@ a day-by-day lesson plan, a background player with a karaoke transcript and shad
 vocabulary flashcards with SM-2 spaced repetition, study reminders and stats.
 
 The course audio and text are copyrighted and are **never committed** (see `.gitignore`).
-The app reads them at runtime from a folder the user picks (SAF); downloading from the
-owner's Google Drive is planned.
+The app reads them at runtime either from the owner's Google Drive (the package written by
+`tools/prepare_content.py`, read-only OAuth) or from a folder the user picks (SAF).
 
 ## Project layout
 - `android/` — Android app (Gradle Kotlin DSL, Compose, Room, Media3, Material 3).
@@ -14,6 +14,7 @@ owner's Google Drive is planned.
   - `data/db/` — Room entities and DAOs. Library tables are replaced on every scan; progress, cards and track state live in separate tables keyed by path-derived ids, so a rescan keeps them.
   - `player/` — `PlayerController` owns the single ExoPlayer (A-B loop, shadowing, listening time) and builds lesson playlists; `PlaybackService` (a `MediaLibraryService`) wraps it for background playback, the media notification and Android Auto.
   - `reminders/` — inexact daily alarms re-armed by the receiver, on boot and on time changes.
+  - `drive/` — Google Drive source: `DriveAuth` (Play services AuthorizationClient, scope `drive.readonly`), `DriveApi` (Drive v3 over OkHttp), `DriveRepository` (sync of manifest/transcripts/timings into `getExternalFilesDir()/content`, per-lesson audio downloads via `DownloadWorker`, streaming fallback). Tracks always point at the local path; `DriveRepository.playableUri` swaps in the Drive URL while the file is not downloaded, and the player's `ResolvingDataSource` adds the token.
 - `tools/prepare_content.py` — turns the course folders (Google Drive layout) into the app's content package: copies audio, converts PDFs to text, runs Whisper (cached, resumable), times PDF sentences against Whisper's words, writes `manifest.json`. Run it with a Python 3.12 venv holding `faster-whisper`, `pymupdf` and `av<18` (av 18+ breaks faster-whisper 1.2).
 
 ## Android Auto
@@ -31,6 +32,11 @@ owner's Google Drive is planned.
 - A `manifest.json` at the root overrides all of the above (format: `Manifest` in `LibraryScanner.kt`).
 
 Timing file: `{"version":1,"sentences":[{"s":<startMs>,"e":<endMs>,"t":"<text>","p":<paragraph start>}]}`.
+
+## Google Drive setup (owner's Google Cloud project)
+- Drive API enabled; OAuth consent screen External, scope `.../auth/drive.readonly`, published (unverified is fine for personal use; Testing mode would expire grants weekly).
+- Android OAuth clients for `io.github.manhvu1212.effortless.debug` (debug keystore SHA-1) and, once a release key exists, `io.github.manhvu1212.effortless`. No client id goes into the app: Play services matches package + SHA-1.
+- Without it, connecting fails with DEVELOPER_ERROR (shown as "Chưa cấu hình OAuth client").
 
 ## Toolchain
 - AGP 9.2, Kotlin 2.3, Gradle 9.5, Java 17 target.

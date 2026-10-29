@@ -45,6 +45,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import io.github.manhvu1212.effortless.AppContainer
 import io.github.manhvu1212.effortless.R
+import io.github.manhvu1212.effortless.container
 import io.github.manhvu1212.effortless.data.CardRepository
 import io.github.manhvu1212.effortless.data.db.CardEntity
 import io.github.manhvu1212.effortless.domain.Grade
@@ -202,7 +203,7 @@ class ReviewViewModel(private val c: AppContainer) : ViewModel() {
         }
     }
 
-    suspend fun audioUri(card: CardEntity): String? = card.trackId?.let { c.db.library().track(it)?.audioUri }
+    suspend fun audioUri(card: CardEntity): String? = card.trackId?.let { c.db.library().track(it) }?.let { c.drive.playableUri(it) }
 }
 
 @Composable
@@ -210,7 +211,7 @@ fun ReviewScreen(contentPadding: PaddingValues, onDone: () -> Unit) {
     val vm = appViewModel { ReviewViewModel(it) }
     val ui by vm.ui.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val clip = remember { ClipPlayer(context) }
+    val clip = remember { ClipPlayer(context, context.container.drive) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     DisposableEffect(Unit) { onDispose { clip.release() } }
 

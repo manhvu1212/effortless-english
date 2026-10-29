@@ -9,7 +9,12 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
+import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
@@ -20,6 +25,8 @@ import io.github.manhvu1212.effortless.data.db.AppDatabase
 import io.github.manhvu1212.effortless.data.db.LessonEntity
 import io.github.manhvu1212.effortless.data.db.TrackEntity
 import io.github.manhvu1212.effortless.data.settings.SettingsRepository
+import io.github.manhvu1212.effortless.drive.DriveApi
+import io.github.manhvu1212.effortless.drive.DriveRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -30,7 +37,16 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+
+/** Local files as usual; Drive URLs get the user's access token, fetched on the loader thread. */
+fun dataSourceFactory(context: Context, drive: DriveRepository): DataSource.Factory =
+    ResolvingDataSource.Factory(DefaultDataSource.Factory(context, DefaultHttpDataSource.Factory())) { spec ->
+        if (spec.uri.host != DriveApi.HOST) return@Factory spec
+        val token = runBlocking { drive.auth.token() } ?: throw java.io.IOException("Google Drive is not connected")
+        spec.withAdditionalHeaders(mapOf("Authorization" to "Bearer $token"))
+    }
 
 data class Playlist(val items: List<MediaItem>, val index: Int, val startMs: Long)
 
@@ -67,6 +83,7 @@ class PlayerController(
     private val study: StudyRepository,
     private val settings: SettingsRepository,
     private val scope: CoroutineScope,
+    private val drive: DriveRepository,
 ) {
     private val _state = MutableStateFlow(PlayerState())
     val state: StateFlow<PlayerState> = _state.asStateFlow()
@@ -76,6 +93,7 @@ class PlayerController(
 
     val player: ExoPlayer by lazy {
         ExoPlayer.Builder(context)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory(context, drive)))
             .setAudioAttributes(
                 AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_SPEECH).build(),
                 true,
@@ -165,7 +183,7 @@ class PlayerController(
         db.library().ensureTrackState(track.id)
         val resume = db.library().trackState(track.id)
         val start = resume?.takeIf { it.durationMs == 0L || it.resumeMs < it.durationMs - 3_000 }?.resumeMs ?: 0
-        Playlist(tracks.map { mediaItem(it, lesson) }, index, start)
+        Playlist(tracks.map { mediaItem(it, lesson, drive.playableUri(it)) }, index, start)
     }
 
     suspend fun playlistForTrack(trackId: String): Playlist? {
@@ -200,10 +218,10 @@ class PlayerController(
         return null
     }
 
-    private fun mediaItem(track: TrackEntity, lesson: LessonEntity): MediaItem =
+    private fun mediaItem(track: TrackEntity, lesson: LessonEntity, uri: String): MediaItem =
         MediaItem.Builder()
             .setMediaId(track.id)
-            .setUri(Uri.parse(track.audioUri))
+            .setUri(Uri.parse(uri))
             .setMediaMetadata(
                 MediaMetadata.Builder()
                     .setTitle(track.title)

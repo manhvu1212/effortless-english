@@ -7,6 +7,7 @@ import io.github.manhvu1212.effortless.data.LibraryRepository
 import io.github.manhvu1212.effortless.data.StudyRepository
 import io.github.manhvu1212.effortless.data.db.AppDatabase
 import io.github.manhvu1212.effortless.data.settings.SettingsRepository
+import io.github.manhvu1212.effortless.drive.DriveRepository
 import io.github.manhvu1212.effortless.player.PlayerController
 import io.github.manhvu1212.effortless.reminders.Notifications
 import io.github.manhvu1212.effortless.reminders.ReminderScheduler
@@ -22,7 +23,8 @@ class AppContainer(context: Context) {
     val library = LibraryRepository(context, db, settings)
     val study = StudyRepository(db, settings)
     val cards = CardRepository(db)
-    val player = PlayerController(context, db, library, study, settings, scope)
+    val drive = DriveRepository(context, db, settings, study)
+    val player = PlayerController(context, db, library, study, settings, scope, drive)
 }
 
 class EffortlessApp : Application() {
@@ -33,7 +35,10 @@ class EffortlessApp : Application() {
         super.onCreate()
         container = AppContainer(this)
         Notifications.createChannels(this)
-        container.scope.launch { ReminderScheduler.rescheduleAll(this@EffortlessApp, container.settings.current()) }
+        container.scope.launch {
+            ReminderScheduler.rescheduleAll(this@EffortlessApp, container.settings.current())
+            runCatching { container.drive.ensureAhead() }
+        }
     }
 }
 

@@ -88,6 +88,15 @@ data class ReviewLogEntity(
     val grade: Int,
 )
 
+/** A file of the Google Drive content folder; [path] is relative to that folder, as in manifest.json. */
+@Entity(tableName = "remote_file")
+data class RemoteFileEntity(
+    @PrimaryKey val path: String,
+    val driveId: String,
+    val size: Long,
+    val md5: String?,
+)
+
 data class DayTotal(val day: Long, val listenedMs: Long)
 
 data class DayCount(val day: Long, val count: Int)

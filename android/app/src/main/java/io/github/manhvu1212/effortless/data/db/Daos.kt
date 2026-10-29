@@ -177,3 +177,24 @@ interface CardDao {
     @Query("SELECT day, COUNT(*) AS count FROM review_log WHERE day >= :from GROUP BY day ORDER BY day")
     fun reviewsPerDay(from: Long): Flow<List<DayCount>>
 }
+
+@Dao
+interface RemoteFileDao {
+    @Query("SELECT * FROM remote_file WHERE path = :path")
+    suspend fun byPath(path: String): RemoteFileEntity?
+
+    @Query("SELECT * FROM remote_file WHERE path IN (:paths)")
+    suspend fun byPaths(paths: List<String>): List<RemoteFileEntity>
+
+    @Query("DELETE FROM remote_file")
+    suspend fun deleteAll()
+
+    @Insert
+    suspend fun insertAll(files: List<RemoteFileEntity>)
+
+    @Transaction
+    suspend fun replaceAll(files: List<RemoteFileEntity>) {
+        deleteAll()
+        insertAll(files)
+    }
+}

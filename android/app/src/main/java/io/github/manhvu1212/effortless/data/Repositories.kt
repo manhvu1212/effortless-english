@@ -13,6 +13,7 @@ import io.github.manhvu1212.effortless.data.db.LessonEntity
 import io.github.manhvu1212.effortless.data.db.LessonProgressEntity
 import io.github.manhvu1212.effortless.data.db.ReviewLogEntity
 import io.github.manhvu1212.effortless.data.db.TrackEntity
+import io.github.manhvu1212.effortless.data.settings.ContentSource
 import io.github.manhvu1212.effortless.data.settings.SettingsRepository
 import io.github.manhvu1212.effortless.domain.Grade
 import io.github.manhvu1212.effortless.domain.Sm2
@@ -32,7 +33,7 @@ class LibraryRepository(
     suspend fun importTree(treeUri: Uri): ScanSummary {
         context.contentResolver.takePersistableUriPermission(treeUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
         val summary = scan(treeUri)
-        settings.update { it.copy(contentRootUri = treeUri.toString()) }
+        settings.update { it.copy(contentRootUri = treeUri.toString(), contentSource = ContentSource.FOLDER) }
         return summary
     }
 
