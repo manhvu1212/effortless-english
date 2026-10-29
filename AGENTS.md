@@ -14,7 +14,7 @@ owner's Google Drive is planned.
   - `data/db/` — Room entities and DAOs. Library tables are replaced on every scan; progress, cards and track state live in separate tables keyed by path-derived ids, so a rescan keeps them.
   - `player/` — `PlayerController` owns the single ExoPlayer (A-B loop, shadowing, listening time) and builds lesson playlists; `PlaybackService` (a `MediaLibraryService`) wraps it for background playback, the media notification and Android Auto.
   - `reminders/` — inexact daily alarms re-armed by the receiver, on boot and on time changes.
-- `tools/` — PC-side scripts (planned): Whisper alignment that writes the timing files.
+- `tools/prepare_content.py` — turns the course folders (Google Drive layout) into the app's content package: copies audio, converts PDFs to text, runs Whisper (cached, resumable), times PDF sentences against Whisper's words, writes `manifest.json`. Run it with a Python 3.12 venv holding `faster-whisper`, `pymupdf` and `av<18` (av 18+ breaks faster-whisper 1.2).
 
 ## Android Auto
 - Audio-only by design (no transcript in the car). `MediaTree` is the browse tree: tabs `@today` (current lesson's tracks) and `@courses` (course → lesson → tracks). Folder ids start with `@`; playable items use the plain track id, the same id the player uses.
@@ -26,7 +26,7 @@ owner's Google Drive is planned.
 ## Content folder
 - Every folder holding audio files (mp3, m4a, wav…) is a lesson; its top-level folder under the picked root is the course.
 - A folder whose audio files carry several leading numbers (`01 …`, `02 …`) is split into one lesson per number.
-- Track kind comes from the file name: `vocab`, `mini`/`ms`, `pov`/`point of view`, `comment`; anything else is the main track.
+- Track kind comes from the words a file name adds to its lesson folder's title: `vocab…`, `pov`/`point of view` (before MS: "POV-MS" is POV), `comm…`, `mini…`/`ms`/`msi`; otherwise Power English's leading `1_`–`4_`; anything else is the main track. `tools/prepare_content.py` uses the same rules.
 - Transcript: `.txt` with the audio's base name (or the only text file of that kind). Karaoke: `<audio base>.timing.json`.
 - A `manifest.json` at the root overrides all of the above (format: `Manifest` in `LibraryScanner.kt`).
 
