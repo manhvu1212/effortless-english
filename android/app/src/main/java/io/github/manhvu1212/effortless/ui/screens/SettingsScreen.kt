@@ -149,7 +149,9 @@ class SettingsViewModel(private val c: AppContainer, private val context: Contex
 
     private fun failure(e: Throwable): ScanState.Failed = ScanState.Failed(
         when {
-            e is ApiException && e.statusCode == CommonStatusCodes.DEVELOPER_ERROR -> context.getString(R.string.drive_error_client)
+            // No OAuth client for this package + signing key: DEVELOPER_ERROR, or INTERNAL_ERROR saying UNREGISTERED_ON_API_CONSOLE.
+            e is ApiException && (e.statusCode == CommonStatusCodes.DEVELOPER_ERROR || "UNREGISTERED_ON_API_CONSOLE" in e.message.orEmpty()) ->
+                context.getString(R.string.drive_error_client)
             e is ApiException && e.statusCode == CommonStatusCodes.CANCELED -> context.getString(R.string.drive_error_cancelled)
             e is FolderNotFoundException -> context.getString(R.string.drive_error_folder, e.name)
             e is NotAuthorizedException -> context.getString(R.string.drive_error_auth)
