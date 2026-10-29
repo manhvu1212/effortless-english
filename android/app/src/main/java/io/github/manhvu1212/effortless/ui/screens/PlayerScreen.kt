@@ -135,10 +135,14 @@ fun PlayerScreen(contentPadding: PaddingValues) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             itemsIndexed(state.tracks, key = { _, t -> t.id }) { index, track ->
+                // Several tracks of one kind (Mini-Story A and B) are numbered.
+                val sameKind = state.tracks.filter { it.kind == track.kind }
+                val label = stringResource(track.kind.label()) +
+                    if (sameKind.size > 1) " ${sameKind.indexOf(track) + 1}" else ""
                 FilterChip(
                     selected = index == state.index,
                     onClick = { vm.player.selectTrack(index) },
-                    label = { Text(stringResource(track.kind.label())) },
+                    label = { Text(label) },
                 )
             }
         }

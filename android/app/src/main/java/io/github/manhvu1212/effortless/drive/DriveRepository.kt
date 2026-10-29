@@ -19,6 +19,11 @@ import io.github.manhvu1212.effortless.data.db.TrackEntity
 import io.github.manhvu1212.effortless.data.settings.ContentSource
 import io.github.manhvu1212.effortless.data.settings.SettingsRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
@@ -54,10 +59,14 @@ class DriveRepository(
         val folderId = settings.current().driveFolderId ?: throw FolderNotFoundException(settings.current().driveFolderName)
         val entries = api.listTree(folderId)
         db.remoteFiles().replaceAll(entries.map { RemoteFileEntity(it.path, it.id, it.size, it.md5) })
-        for (entry in entries) {
-            if (!isSmall(entry.path)) continue
-            val file = File(root, entry.path)
-            if (!file.exists() || file.length() != entry.size) api.download(entry.id, file)
+        val limit = Semaphore(DriveApi.PARALLEL)
+        coroutineScope {
+            entries.filter { isSmall(it.path) }.map { entry ->
+                async {
+                    val file = File(root, entry.path)
+                    if (!file.exists() || file.length() != entry.size) limit.withPermit { api.download(entry.id, file) }
+                }
+            }.awaitAll()
         }
         val manifest = File(root, LibraryScanner.MANIFEST).takeIf { it.exists() }
             ?: throw IOException("${LibraryScanner.MANIFEST} is missing from the Drive folder")
