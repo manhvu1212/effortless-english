@@ -1,0 +1,5 @@
+First test release:
+• Day-by-day lesson plan, karaoke player, shadowing, A–B loop
+• Spaced-repetition flashcards
+• Study reminders and stats
+• Lessons from Google Drive, Android Auto

@@ -162,9 +162,9 @@ fun TodayScreen(
     ) {
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                StatChip(Icons.Default.LocalFireDepartment, pluralStringResource(R.plurals.streak_days, ui.streak, ui.streak), Modifier.weight(1f))
-                StatChip(Icons.Default.Timer, stringResource(R.string.minutes_today, minutesOf(ui.listenedTodayMs)), Modifier.weight(1f))
-                StatChip(Icons.Default.Style, pluralStringResource(R.plurals.cards_due, ui.dueCards, ui.dueCards), Modifier.weight(1f), onClick = onOpenReview)
+                StatChip(Icons.Default.LocalFireDepartment, pluralStringResource(R.plurals.streak_days, ui.streak, ui.streak), Modifier.weight(1f), stringResource(R.string.stat_streak))
+                StatChip(Icons.Default.Timer, stringResource(R.string.minutes_today, minutesOf(ui.listenedTodayMs)), Modifier.weight(1f), stringResource(R.string.listened_today))
+                StatChip(Icons.Default.Style, pluralStringResource(R.plurals.cards_due, ui.dueCards, ui.dueCards), Modifier.weight(1f), stringResource(R.string.cards_due_label), onClick = onOpenReview)
             }
         }
         if (!ui.loaded) return@LazyColumn
@@ -225,13 +225,13 @@ private fun LessonHeader(ui: TodayUi) {
 }
 
 @Composable
-fun StatChip(icon: ImageVector, text: String, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
+fun StatChip(icon: ImageVector, text: String, modifier: Modifier = Modifier, description: String? = null, onClick: (() -> Unit)? = null) {
     Card(
         modifier = modifier.then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
     ) {
         Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, contentDescription = null, modifier = Modifier.padding(end = 6.dp))
+            Icon(icon, contentDescription = description, modifier = Modifier.padding(end = 6.dp))
             Text(text, style = MaterialTheme.typography.labelLarge)
         }
     }

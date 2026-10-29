@@ -1,0 +1,25 @@
+A study companion for learning to understand and speak English by "deep listening": the same lesson for many days, answering mini-story questions out loud, shadowing sentence by sentence.
+
+A DAY-BY-DAY PLAN
+• Each lesson runs for N days (7 by default): read the transcript → main story → vocabulary → mini-story → point of view.
+• Tick off each step; move on only when you understand nearly everything.
+• Study streak, minutes listened per day, 14-day stats.
+
+A PLAYER BUILT FOR LEARNERS
+• Karaoke transcript: the playing sentence is highlighted and followed; tap a sentence to hear it again.
+• Shadowing: pauses after every sentence so you can repeat it.
+• A–B loop, sentence loop, skip back/forward, speed 0.5–1.5x.
+• Background playback with lock-screen and headset controls.
+• Android Auto: study in the car with skip, speed and voice commands.
+
+VOCABULARY & REVIEW
+• Long-press a sentence, pick a word or phrase and save it as a card with the example sentence and its original audio.
+• Spaced-repetition review (SM-2): Again / Hard / Good / Easy.
+
+STUDY REMINDERS
+• Reminders at the times you choose, plus an evening nudge if you have not studied yet.
+
+YOUR OWN MATERIAL
+The app ships no course content. Use your own study material: connect Google Drive (read-only, a single folder you name) or pick a folder on the device. The app has no server and collects no data.
+
+Independent personal project; not affiliated with or endorsed by Effortless English LLC or A.J. Hoge.

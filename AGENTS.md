@@ -40,13 +40,20 @@ Timing file: `{"version":1,"sentences":[{"s":<startMs>,"e":<endMs>,"t":"<text>",
 
 ## Toolchain
 - AGP 9.2, Kotlin 2.3, Gradle 9.5, Java 17 target.
-- minSdk 26, targetSdk 35, compileSdk 36 (Media3 1.11 needs it).
+- minSdk 26, targetSdk 36, compileSdk 36.
 - Room via KSP, kotlinx.serialization for JSON.
 
 ## Build & test
 - From `android/`: `gradlew.bat assembleDebug`, `gradlew.bat testDebugUnitTest`.
 - Instrumented (needs a device or emulator; replaces the app's library data and uninstalls afterwards): `gradlew.bat connectedDebugAndroidTest`.
 - Release signing reads `NMV_KEYSTORE` / `NMV_KEYSTORE_PASS` from the user-level `~/.gradle/gradle.properties`; the alias is `effortless`.
+
+## Google Play
+- Listing text and phone screenshots: `android/fastlane/metadata/android/{vi-VN,en-US}` (fastlane supply layout); changelog per versionCode in `changelogs/<versionCode>.txt`.
+- Icon 512 and feature graphic: `play-store-assets/generate.ps1 [-Title ...]` (UTF-8 with BOM: PowerShell 5 reads it as ANSI otherwise).
+- Screenshots must be at most 2:1; emulator shots (1280x2856) are scaled to 2560 high and padded to 1280 wide.
+- Play App Signing re-signs the app: Drive needs an extra Android OAuth client with the *app signing* SHA-1 from Play Console → App integrity.
+- Bump `versionCode` for every upload.
 
 ## Conventions
 - Compose-first: no XML layouts beyond resources.

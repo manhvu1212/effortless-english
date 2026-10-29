@@ -1,0 +1,25 @@
+Ứng dụng đồng hành khi bạn tự học nghe nói tiếng Anh theo phương pháp "nghe sâu": nghe đi nghe lại một bài trong nhiều ngày, trả lời to theo mini-story, nhại lại từng câu.
+
+LỘ TRÌNH TỪNG NGÀY
+• Mỗi bài học trong N ngày (mặc định 7): đọc transcript → nghe bài chính → từ vựng → mini-story → point of view.
+• Đánh dấu từng bước; chỉ khi bạn hiểu gần 100% mới chuyển bài.
+• Chuỗi ngày học, số phút nghe mỗi ngày, thống kê 14 ngày.
+
+TRÌNH PHÁT CHO NGƯỜI HỌC
+• Transcript karaoke: câu đang phát được tô sáng và tự cuộn; chạm vào câu để nghe lại từ đó.
+• Shadowing: tự dừng sau mỗi câu để bạn nhại lại.
+• Lặp đoạn A–B, lặp từng câu, tua lùi/tới, tốc độ 0,5–1,5x.
+• Nghe khi tắt màn hình, điều khiển từ màn hình khóa và tai nghe.
+• Android Auto: học trên xe với nút tua, tốc độ và lệnh giọng nói.
+
+TỪ VỰNG & ÔN TẬP
+• Nhấn giữ một câu, chọn từ hoặc cụm từ để lưu thành thẻ, kèm câu ví dụ và đoạn audio gốc.
+• Ôn tập theo khoảng cách (SM-2): Lại / Khó / Được / Dễ.
+
+NHẮC LỊCH HỌC
+• Nhắc theo giờ bạn chọn, và nhắc lại buổi tối nếu hôm đó chưa học.
+
+NỘI DUNG CỦA BẠN
+Ứng dụng không kèm nội dung khóa học. Bạn dùng tài liệu học của chính mình: kết nối Google Drive (chỉ quyền đọc, chỉ một thư mục bạn chọn) hoặc chọn một thư mục trên máy. Ứng dụng không có máy chủ và không thu thập dữ liệu nào.
+
+Ứng dụng do cá nhân phát triển, không liên kết với và không được bảo trợ bởi Effortless English LLC hay A.J. Hoge.

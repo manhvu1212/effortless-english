@@ -23,13 +23,15 @@
 
     <!-- Today -->
     <plurals name="streak_days">
-        <item quantity="one">%d ngày liên tục</item>
-        <item quantity="other">%d ngày liên tục</item>
+        <item quantity="one">%d ngày</item>
+        <item quantity="other">%d ngày</item>
     </plurals>
-    <string name="minutes_today">%d phút hôm nay</string>
+    <string name="listened_today">Thời gian nghe hôm nay</string>
+    <string name="cards_due_label">Thẻ cần ôn</string>
+    <string name="minutes_today">%d phút</string>
     <plurals name="cards_due">
-        <item quantity="one">%d thẻ cần ôn</item>
-        <item quantity="other">%d thẻ cần ôn</item>
+        <item quantity="one">%d thẻ</item>
+        <item quantity="other">%d thẻ</item>
     </plurals>
     <string name="no_library">Chưa có bài học nào. Hãy chọn thư mục chứa file nghe và file text của khóa học.</string>
     <string name="all_lessons_done">Bạn đã hoàn thành tất cả các bài. Tuyệt vời!</string>
