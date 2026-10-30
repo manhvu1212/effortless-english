@@ -68,6 +68,22 @@
     <string name="rewind">Tua lùi</string>
     <string name="forward">Tua tới</string>
     <string name="repeat_track">Lặp bài</string>
+    <string name="after_repeat">Lặp lại</string>
+    <string name="after_stop">Dừng</string>
+    <string name="after_next">Bài tiếp</string>
+    <string name="step_progress">Bước %1$d/%2$d · %3$s</string>
+    <string name="not_listened_yet">Chưa nghe trọn lần nào hôm nay</string>
+    <plurals name="listened_times">
+        <item quantity="one">Đã nghe %d lần hôm nay</item>
+        <item quantity="other">Đã nghe %d lần hôm nay</item>
+    </plurals>
+    <string name="step_done_next">Xong, bước tiếp →</string>
+    <string name="step_next">Bước tiếp →</string>
+    <string name="step_done_last">Xong bước này</string>
+    <string name="today_all_done">✓ Xong hôm nay</string>
+    <string name="title_read">Đọc</string>
+    <string name="read_hint">Đọc chậm, tra những từ chưa hiểu. Nhấn giữ một câu để lưu từ vựng.</string>
+    <string name="read_done">Đã đọc xong → Nghe bài chính</string>
     <string name="shadowing">Shadowing: dừng sau mỗi câu để bạn nhại lại</string>
     <string name="shadow_your_turn">Đến lượt bạn: nhại lại câu vừa nghe</string>
     <string name="loop_sentence">Lặp câu này</string>

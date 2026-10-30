@@ -22,17 +22,21 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.RecordVoiceOver
-import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.RepeatOne
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -68,6 +72,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -80,16 +85,72 @@ import io.github.manhvu1212.effortless.data.content.Sentence
 import io.github.manhvu1212.effortless.data.db.CardEntity
 import io.github.manhvu1212.effortless.data.db.TrackKind
 import io.github.manhvu1212.effortless.domain.today
+import io.github.manhvu1212.effortless.data.StudyRepository
+import io.github.manhvu1212.effortless.data.settings.AfterTrack
 import io.github.manhvu1212.effortless.player.PlayerState
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import io.github.manhvu1212.effortless.ui.appViewModel
 import io.github.manhvu1212.effortless.ui.formatClock
 import io.github.manhvu1212.effortless.ui.label
 import kotlinx.coroutines.launch
 
+/** The playing track as a step of the lesson's plan. */
+data class StepUi(
+    val number: Int,
+    val total: Int,
+    val kind: TrackKind,
+    val listens: Int,
+    val done: Boolean,
+    val hasNext: Boolean,
+)
+
+@OptIn(ExperimentalCoroutinesApi::class)
 class PlayerViewModel(private val c: AppContainer) : ViewModel() {
     val player = c.player
     val state = player.state
     val transcript = player.transcript
+
+    val step: StateFlow<StepUi?> = state
+        .map { it.track }
+        .distinctUntilChanged()
+        .flatMapLatest { track ->
+            if (track == null) {
+                flowOf(null)
+            } else {
+                combine(
+                    c.db.library().tracks(track.lessonId),
+                    c.db.study().log(today(), track.lessonId),
+                    c.study.listensToday(track.lessonId),
+                ) { tracks, log, listens ->
+                    val steps = c.study.steps(tracks)
+                    val i = steps.indexOfFirst { it.track?.id == track.id }
+                    if (i < 0) null
+                    else StepUi(i + 1, steps.size, track.kind, listens[track.id] ?: 0, (log?.steps ?: 0) and steps[i].mask != 0L, i < steps.lastIndex)
+                }
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** Ticks the playing track's step and starts the next one: the learner decides when to move on. */
+    fun completeStep() {
+        val s = state.value
+        val track = s.track ?: return
+        viewModelScope.launch {
+            c.study.setStepDone(track.lessonId, StudyRepository.trackMask(track), true)
+            if (s.index + 1 < s.tracks.size) {
+                player.selectTrack(s.index + 1)
+                player.play()
+            }
+        }
+    }
 
     fun addCard(front: String, back: String, sentence: Sentence) {
         val track = state.value.track ?: return
@@ -120,6 +181,7 @@ fun PlayerScreen(contentPadding: PaddingValues) {
     val vm = appViewModel { PlayerViewModel(it) }
     val state by vm.state.collectAsStateWithLifecycle()
     val transcript by vm.transcript.collectAsStateWithLifecycle()
+    val step by vm.step.collectAsStateWithLifecycle()
     var menuSentence by remember { mutableStateOf<Sentence?>(null) }
     var cardSentence by remember { mutableStateOf<Sentence?>(null) }
 
@@ -175,6 +237,7 @@ fun PlayerScreen(contentPadding: PaddingValues) {
             }
         }
 
+        step?.let { StepBar(it, onComplete = vm::completeStep) }
         Controls(state, vm)
     }
 
@@ -353,13 +416,7 @@ private fun Controls(state: PlayerState, vm: PlayerViewModel) {
                         color = if (state.loopA != null) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
                     )
                 }
-                IconToggleButton(checked = state.repeatTrack, onCheckedChange = { vm.player.toggleRepeatTrack() }) {
-                    Icon(
-                        if (state.repeatTrack) Icons.Default.RepeatOne else Icons.Default.Repeat,
-                        stringResource(R.string.repeat_track),
-                        tint = if (state.repeatTrack) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                AfterTrackButton(state.afterTrack, onClick = vm.player::cycleAfterTrack)
                 IconToggleButton(checked = state.shadowing, onCheckedChange = { vm.player.toggleShadowing() }) {
                     Icon(
                         Icons.Default.RecordVoiceOver,
@@ -380,10 +437,52 @@ private fun Controls(state: PlayerState, vm: PlayerViewModel) {
     }
 }
 
+/** What happens when the track ends; tapping cycles repeat → stop → next. */
+@Composable
+private fun AfterTrackButton(mode: AfterTrack, onClick: () -> Unit) {
+    val (icon, label) = when (mode) {
+        AfterTrack.REPEAT -> Icons.Default.RepeatOne to R.string.after_repeat
+        AfterTrack.STOP -> Icons.Default.Stop to R.string.after_stop
+        AfterTrack.NEXT -> Icons.AutoMirrored.Filled.PlaylistPlay to R.string.after_next
+    }
+    TextButton(onClick = onClick) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
+            Text(stringResource(label), style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
+
+@Composable
+private fun StepBar(step: StepUi, onComplete: () -> Unit) {
+    Surface(color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.fillMaxWidth()) {
+        Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    stringResource(R.string.step_progress, step.number, step.total, stringResource(step.kind.label())),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Text(
+                    if (step.listens == 0) stringResource(R.string.not_listened_yet)
+                    else pluralStringResource(R.plurals.listened_times, step.listens, step.listens),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            when {
+                !step.done -> Button(onClick = onComplete) {
+                    Text(stringResource(if (step.hasNext) R.string.step_done_next else R.string.step_done_last))
+                }
+                step.hasNext -> OutlinedButton(onClick = onComplete) { Text(stringResource(R.string.step_next)) }
+                else -> Text(stringResource(R.string.today_all_done), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            }
+        }
+    }
+}
+
 /** Tap words of the sentence to build the phrase, or type it. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun AddCardDialog(sentence: Sentence, onDismiss: () -> Unit, onSave: (String, String) -> Unit) {
+internal fun AddCardDialog(sentence: Sentence, onDismiss: () -> Unit, onSave: (String, String) -> Unit) {
     val words = remember(sentence) { sentence.text.split(Regex("""\s+""")).filter { it.isNotBlank() } }
     val picked = remember(sentence) { mutableStateListOf<Int>() }
     var front by remember { mutableStateOf("") }

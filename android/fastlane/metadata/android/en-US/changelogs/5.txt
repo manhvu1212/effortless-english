@@ -1,0 +1,4 @@
+• A separate Read page for the transcript step: large text, no player, long-press a sentence to save a word
+• A finished track now repeats (or stops / goes on, your choice) instead of jumping to the next one
+• Full listens of each track are counted per day
+• A step bar in the player: tap "Xong, bước tiếp" when you are ready to move on

@@ -1,0 +1,4 @@
+• Trang Đọc riêng cho bước đọc transcript: chữ lớn, không có trình phát, nhấn giữ một câu để lưu từ vựng
+• Nghe xong một bài sẽ tự lặp lại (đổi được: Dừng / Bài tiếp), không còn tự nhảy sang bài khác
+• Đếm số lần nghe trọn mỗi bài trong ngày
+• Thanh bước học trong trình phát: bạn tự bấm "Xong, bước tiếp" khi đã sẵn sàng

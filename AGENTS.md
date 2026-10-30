@@ -17,6 +17,11 @@ The app reads them at runtime either from the owner's Google Drive (the package 
   - `drive/` — Google Drive source: `DriveAuth` (Play services AuthorizationClient, scope `drive.readonly`), `DriveApi` (Drive v3 over OkHttp), `DriveRepository` (sync of manifest/transcripts/timings into `getExternalFilesDir()/content`, per-lesson audio downloads via `DownloadWorker`, streaming fallback). Tracks always point at the local path; `DriveRepository.playableUri` swaps in the Drive URL while the file is not downloaded, and the player's `ResolvingDataSource` adds the token.
 - `tools/prepare_content.py` — turns the course folders (Google Drive layout) into the app's content package: copies audio, converts PDFs to text, runs Whisper (cached, resumable), times PDF sentences against Whisper's words, writes `manifest.json`. Run it with a Python 3.12 venv holding `faster-whisper`, `pymupdf` and `av<18` (av 18+ breaks faster-whisper 1.2).
 
+## Study flow
+- Today's steps: read the transcript (`ReadScreen`: text only, "Đã đọc xong" ticks it), then one step per track.
+- Nothing ticks a step automatically: the method is to listen many times. A listen to the end is counted per track and day (`track_listen`); the player's step bar shows the count and "Xong, bước tiếp →" ticks the step and starts the next track.
+- When a track ends the player repeats it by default (`AfterTrack.REPEAT`); the user can switch to stop-at-end or go-to-next, remembered in settings.
+
 ## Android Auto
 - Audio-only by design (no transcript in the car). `MediaTree` is the browse tree: tabs `@today` (current lesson's tracks) and `@courses` (course → lesson → tracks). Folder ids start with `@`; playable items use the plain track id, the same id the player uses.
 - Choosing a track queues its whole lesson from where it was left; a voice query matches lesson then track titles; a blank query or an id-less item resumes (`PlayerController.resumption`).

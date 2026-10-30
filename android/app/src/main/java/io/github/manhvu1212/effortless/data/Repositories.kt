@@ -20,6 +20,8 @@ import io.github.manhvu1212.effortless.domain.Sm2
 import io.github.manhvu1212.effortless.domain.Sm2State
 import io.github.manhvu1212.effortless.domain.today
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
 data class ScanSummary(val courses: Int, val lessons: Int, val tracks: Int, val withTranscript: Int, val withTiming: Int)
@@ -104,7 +106,20 @@ class StudyRepository(
         countDayIfComplete(lessonId, day)
     }
 
-    suspend fun setTrackListened(track: TrackEntity) = setStepDone(track.lessonId, trackMask(track), true)
+    /**
+     * Counts a listen to the end. It does not tick the step: the learner listens many times and
+     * moves on when ready.
+     */
+    suspend fun addFullListen(track: TrackEntity) {
+        val day = today()
+        ensureStarted(track.lessonId)
+        dao.ensureLog(day, track.lessonId)
+        dao.ensureListen(day, track.id)
+        dao.incrementListen(day, track.id)
+    }
+
+    fun listensToday(lessonId: String): Flow<Map<String, Int>> =
+        dao.listens(today(), lessonId).map { rows -> rows.associate { it.trackId to it.count } }
 
     /** A day counts towards the lesson once every step of it is done. */
     private suspend fun countDayIfComplete(lessonId: String, day: Long) {

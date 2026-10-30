@@ -146,6 +146,18 @@ interface StudyDao {
 
     @Query("SELECT COUNT(*) FROM daily_log WHERE day = :day AND (listenedMs > 0 OR steps != 0)")
     suspend fun activityCount(day: Long): Int
+
+    @Query("INSERT OR IGNORE INTO track_listen (day, trackId, count) VALUES (:day, :trackId, 0)")
+    suspend fun ensureListen(day: Long, trackId: String)
+
+    @Query("UPDATE track_listen SET count = count + 1 WHERE day = :day AND trackId = :trackId")
+    suspend fun incrementListen(day: Long, trackId: String)
+
+    /** Listens on [day] per track of the lesson. */
+    @Query(
+        "SELECT * FROM track_listen WHERE day = :day AND trackId IN (SELECT id FROM track WHERE lessonId = :lessonId)"
+    )
+    fun listens(day: Long, lessonId: String): Flow<List<TrackListenEntity>>
 }
 
 @Dao

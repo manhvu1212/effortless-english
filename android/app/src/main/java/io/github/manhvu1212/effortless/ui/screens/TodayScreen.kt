@@ -75,6 +75,8 @@ data class TodayUi(
     val daysPerLesson: Int = 7,
     val streak: Int = 0,
     val dueCards: Int = 0,
+    /** Full listens today per track id. */
+    val listens: Map<String, Int> = emptyMap(),
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -96,7 +98,8 @@ class TodayViewModel(private val c: AppContainer) : ViewModel() {
                 c.db.study().log(day, lesson.id),
                 c.db.study().progress(lesson.id),
                 c.db.library().course(lesson.courseId),
-            ) { tracks, log, progress, course ->
+                c.study.listensToday(lesson.id),
+            ) { tracks, log, progress, course, listens ->
                 TodayUi(
                     loaded = true,
                     hasLibrary = true,
@@ -107,6 +110,7 @@ class TodayViewModel(private val c: AppContainer) : ViewModel() {
                     listenedTodayMs = log?.listenedMs ?: 0,
                     progress = progress,
                     daysPerLesson = daysPerLesson,
+                    listens = listens,
                 )
             }
         }
@@ -154,6 +158,7 @@ fun TodayScreen(
     onOpenSettings: () -> Unit,
     onOpenReview: () -> Unit,
     onOpenLibrary: () -> Unit,
+    onOpenRead: (String) -> Unit,
 ) {
     val vm = appViewModel { TodayViewModel(it) }
     val ui by vm.ui.collectAsStateWithLifecycle()
@@ -206,10 +211,15 @@ fun TodayScreen(
             StepRow(
                 step = step,
                 done = ui.stepsDone and step.mask != 0L,
+                listens = step.track?.let { ui.listens[it.id] } ?: 0,
                 onCheck = { vm.setStep(step, it) },
                 onOpen = {
-                    vm.open(step.track, play = step.track != null)
-                    onOpenPlayer()
+                    if (step.track == null) {
+                        onOpenRead(lesson.id)
+                    } else {
+                        vm.open(step.track, play = true)
+                        onOpenPlayer()
+                    }
                 },
             )
         }
@@ -265,6 +275,7 @@ fun MessageCard(text: String, action: String?, onAction: () -> Unit, secondary: 
 fun StepRow(
     step: StudyStep,
     done: Boolean,
+    listens: Int,
     onCheck: (Boolean) -> Unit,
     onOpen: () -> Unit,
 ) {
@@ -281,6 +292,13 @@ fun StepRow(
                     track == null -> stringResource(R.string.step_read_hint)
                     track.kind == TrackKind.MINI_STORY -> stringResource(R.string.step_mini_story_hint)
                     else -> track.title
+                }
+                if (listens > 0) {
+                    Text(
+                        pluralStringResource(R.plurals.listened_times, listens, listens),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
                 }
                 Text(hint, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

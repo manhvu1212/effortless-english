@@ -52,6 +52,7 @@ import io.github.manhvu1212.effortless.ui.screens.CourseScreen
 import io.github.manhvu1212.effortless.ui.screens.LessonScreen
 import io.github.manhvu1212.effortless.ui.screens.LibraryScreen
 import io.github.manhvu1212.effortless.ui.screens.PlayerScreen
+import io.github.manhvu1212.effortless.ui.screens.ReadScreen
 import io.github.manhvu1212.effortless.ui.screens.ReviewScreen
 import io.github.manhvu1212.effortless.ui.screens.SettingsScreen
 import io.github.manhvu1212.effortless.ui.screens.StatsScreen
@@ -97,6 +98,7 @@ fun AppNav(openPlayer: Boolean, onPlayerOpened: () -> Unit) {
                                     route == PLAYER -> R.string.title_player
                                     route == REVIEW -> R.string.title_review
                                     route == SETTINGS -> R.string.title_settings
+                                route?.startsWith("read") == true -> R.string.title_read
                                     route?.startsWith("course") == true -> R.string.tab_library
                                     else -> R.string.title_lesson
                                 }
@@ -161,6 +163,7 @@ fun AppNav(openPlayer: Boolean, onPlayerOpened: () -> Unit) {
                     onOpenSettings = { nav.navigate(SETTINGS) },
                     onOpenReview = { nav.navigate(REVIEW) },
                     onOpenLibrary = { nav.switchTab(Tab.LIBRARY.route) },
+                    onOpenRead = { nav.navigate("read/${it.encode()}") },
                 )
             }
             composable(Tab.LIBRARY.route) {
@@ -175,6 +178,14 @@ fun AppNav(openPlayer: Boolean, onPlayerOpened: () -> Unit) {
             composable(Tab.CARDS.route) { CardsScreen(padding, onStartReview = { nav.navigate(REVIEW) }) }
             composable(Tab.STATS.route) { StatsScreen(padding) }
             composable(PLAYER) { PlayerScreen(padding) }
+            composable("read/{id}") { e ->
+                ReadScreen(padding, e.arguments?.getString("id").orEmpty().decode()) {
+                    nav.navigate(PLAYER) {
+                        popUpTo("read/{id}") { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            }
             composable(REVIEW) { ReviewScreen(padding, onDone = { nav.popBackStack() }) }
             composable(SETTINGS) { SettingsScreen(padding) }
         }

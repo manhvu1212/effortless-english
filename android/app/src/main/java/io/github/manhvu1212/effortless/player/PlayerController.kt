@@ -24,6 +24,7 @@ import io.github.manhvu1212.effortless.data.content.Transcript
 import io.github.manhvu1212.effortless.data.db.AppDatabase
 import io.github.manhvu1212.effortless.data.db.LessonEntity
 import io.github.manhvu1212.effortless.data.db.TrackEntity
+import io.github.manhvu1212.effortless.data.settings.AfterTrack
 import io.github.manhvu1212.effortless.data.settings.SettingsRepository
 import io.github.manhvu1212.effortless.drive.DriveApi
 import io.github.manhvu1212.effortless.drive.DriveRepository
@@ -63,7 +64,7 @@ data class PlayerState(
     val speed: Float = 1f,
     val loopA: Long? = null,
     val loopB: Long? = null,
-    val repeatTrack: Boolean = false,
+    val afterTrack: AfterTrack = AfterTrack.REPEAT,
     val shadowing: Boolean = false,
     /** Set while shadowing holds the pause after a sentence, for the user to repeat it. */
     val shadowPause: Boolean = false,
@@ -110,6 +111,7 @@ class PlayerController(
     private var unflushedListenMs = 0L
     private var lastTick = 0L
     private var lastSaveAt = 0L
+    private var pausedAtItemEnd = false
 
     private val listener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -130,11 +132,23 @@ class PlayerController(
             if (previous != null &&
                 (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO || reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT)
             ) {
-                scope.launch { study.setTrackListened(previous) }
+                scope.launch { study.addFullListen(previous) }
             }
             _state.update { it.copy(index = player.currentMediaItemIndex, loopA = null, loopB = null, positionMs = 0) }
             shadowWatch = null
             loadTranscript()
+        }
+
+        /** In STOP mode the player pauses at the end of each track: that is a full listen too. */
+        override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+            if (!playWhenReady && reason == Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM) {
+                pausedAtItemEnd = true
+                val track = _state.value.track ?: return
+                scope.launch {
+                    study.addFullListen(track)
+                    db.library().setResume(track.id, 0)
+                }
+            }
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
@@ -148,7 +162,7 @@ class PlayerController(
                 Player.STATE_ENDED -> {
                     val track = _state.value.track ?: return
                     scope.launch {
-                        study.setTrackListened(track)
+                        study.addFullListen(track)
                         db.library().setResume(track.id, 0)
                     }
                 }
@@ -168,10 +182,11 @@ class PlayerController(
         scope.launch(Dispatchers.Main) {
             val playlist = playlist(lesson, tracks, index)
             val speed = settings.current().speed
-            _state.update { PlayerState(lesson = lesson, tracks = tracks, index = index, speed = speed, shadowing = it.shadowing) }
+            val afterTrack = settings.current().afterTrack
+            _state.update { PlayerState(lesson = lesson, tracks = tracks, index = index, speed = speed, shadowing = it.shadowing, afterTrack = afterTrack) }
             player.setMediaItems(playlist.items, playlist.index, playlist.startMs)
             player.setPlaybackSpeed(speed)
-            player.repeatMode = Player.REPEAT_MODE_OFF
+            applyAfterTrack(afterTrack)
             player.prepare()
             if (play) play()
         }
@@ -247,9 +262,19 @@ class PlayerController(
             val lesson = tracks.firstOrNull()?.let { withContext(Dispatchers.IO) { db.library().lessonOnce(it.lessonId) } } ?: return@launch
             if ((0 until player.mediaItemCount).map { player.getMediaItemAt(it).mediaId } != ids) return@launch
             val speed = settings.current().speed
+            val afterTrack = settings.current().afterTrack
             player.setPlaybackSpeed(speed)
-            player.repeatMode = Player.REPEAT_MODE_OFF
-            _state.update { PlayerState(lesson = lesson, tracks = tracks, index = player.currentMediaItemIndex, speed = speed, shadowing = it.shadowing) }
+            applyAfterTrack(afterTrack)
+            _state.update {
+                PlayerState(
+                    lesson = lesson,
+                    tracks = tracks,
+                    index = player.currentMediaItemIndex,
+                    speed = speed,
+                    shadowing = it.shadowing,
+                    afterTrack = afterTrack,
+                )
+            }
             loadTranscript()
         }
     }
@@ -257,7 +282,8 @@ class PlayerController(
     fun play() {
         ensureService()
         cancelShadowPause()
-        if (player.playbackState == Player.STATE_ENDED) player.seekTo(player.currentMediaItemIndex, 0)
+        if (player.playbackState == Player.STATE_ENDED || pausedAtItemEnd) player.seekTo(player.currentMediaItemIndex, 0)
+        pausedAtItemEnd = false
         player.play()
     }
 
@@ -270,6 +296,7 @@ class PlayerController(
 
     fun seekTo(positionMs: Long) {
         cancelShadowPause()
+        pausedAtItemEnd = false
         shadowWatch = null
         player.seekTo(positionMs.coerceAtLeast(0))
         _state.update { it.copy(positionMs = positionMs.coerceAtLeast(0)) }
@@ -285,6 +312,7 @@ class PlayerController(
 
     fun selectTrack(index: Int) {
         cancelShadowPause()
+        pausedAtItemEnd = false
         player.seekTo(index, 0)
     }
 
@@ -329,10 +357,17 @@ class PlayerController(
 
     fun clearLoop() = _state.update { it.copy(loopA = null, loopB = null) }
 
-    fun toggleRepeatTrack() {
-        val repeat = !_state.value.repeatTrack
-        player.repeatMode = if (repeat) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
-        _state.update { it.copy(repeatTrack = repeat) }
+    /** Repeat the track → stop at its end → go on to the next track; remembered for next time. */
+    fun cycleAfterTrack() {
+        val next = AfterTrack.entries[(_state.value.afterTrack.ordinal + 1) % AfterTrack.entries.size]
+        applyAfterTrack(next)
+        _state.update { it.copy(afterTrack = next) }
+        scope.launch { settings.update { it.copy(afterTrack = next) } }
+    }
+
+    private fun applyAfterTrack(mode: AfterTrack) {
+        player.repeatMode = if (mode == AfterTrack.REPEAT) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
+        player.pauseAtEndOfMediaItems = mode == AfterTrack.STOP
     }
 
     fun toggleShadowing() {

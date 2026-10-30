@@ -88,6 +88,14 @@ data class ReviewLogEntity(
     val grade: Int,
 )
 
+/** How many times a track was listened to the end on a day. */
+@Entity(tableName = "track_listen", primaryKeys = ["day", "trackId"])
+data class TrackListenEntity(
+    val day: Long,
+    val trackId: String,
+    val count: Int = 0,
+)
+
 /** A file of the Google Drive content folder; [path] is relative to that folder, as in manifest.json. */
 @Entity(tableName = "remote_file")
 data class RemoteFileEntity(

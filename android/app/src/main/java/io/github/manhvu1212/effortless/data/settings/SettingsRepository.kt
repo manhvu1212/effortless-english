@@ -15,6 +15,9 @@ import kotlinx.coroutines.flow.map
 
 enum class ContentSource { FOLDER, DRIVE }
 
+/** What the player does when a track ends: the method is to listen to the same track many times. */
+enum class AfterTrack { REPEAT, STOP, NEXT }
+
 /** Times of day are minutes after midnight. */
 data class Settings(
     val daysPerLesson: Int = 7,
@@ -35,6 +38,7 @@ data class Settings(
     val speed: Float = 1f,
     val rewindSeconds: Int = 5,
     val shadowGapPercent: Int = 100,
+    val afterTrack: AfterTrack = AfterTrack.REPEAT,
 )
 
 private val Context.dataStore by preferencesDataStore(name = "settings")
@@ -70,6 +74,7 @@ class SettingsRepository(context: Context) {
             speed = this[SPEED] ?: defaults.speed,
             rewindSeconds = this[REWIND_SECONDS] ?: defaults.rewindSeconds,
             shadowGapPercent = this[SHADOW_GAP] ?: defaults.shadowGapPercent,
+            afterTrack = this[AFTER_TRACK]?.let { runCatching { AfterTrack.valueOf(it) }.getOrNull() } ?: defaults.afterTrack,
         )
     }
 
@@ -89,6 +94,7 @@ class SettingsRepository(context: Context) {
         this[SPEED] = s.speed
         this[REWIND_SECONDS] = s.rewindSeconds
         this[SHADOW_GAP] = s.shadowGapPercent
+        this[AFTER_TRACK] = s.afterTrack.name
     }
 
     private companion object {
@@ -107,5 +113,6 @@ class SettingsRepository(context: Context) {
         val SPEED = floatPreferencesKey("speed")
         val REWIND_SECONDS = intPreferencesKey("rewind_seconds")
         val SHADOW_GAP = intPreferencesKey("shadow_gap_percent")
+        val AFTER_TRACK = stringPreferencesKey("after_track")
     }
 }
