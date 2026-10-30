@@ -19,7 +19,7 @@ The app reads them at runtime either from the owner's Google Drive (the package 
 
 ## Study flow
 - Follows the courses' "How To Use The Lessons" guides (`domain/StudyPlan.kt`): read the text, then vocabulary → mini-story → point of view → the main audio → commentary (optional); Learn Real English puts the conversation first. Targets: 3 listens for mini-story and main, 1 for commentary, 2 otherwise; daily goal 60 min by default (guides: at least an hour, two is best).
-- Reading (`ReadScreen`): text only. Tapping a word shows where the vocabulary lesson and mini-story explain it (playable excerpts, `data/content/Words.kt`), plus a hand-off to Google Translate's pop-up (no ML Kit: it would make the app collect diagnostics data).
+- Reading (`ReadScreen`): text only. Tapping a word shows where the vocabulary lesson and mini-story explain it (playable excerpts, `data/content/Words.kt`), plus a hand-off to Google Translate's pop-up (no ML Kit: it would make the app collect diagnostics data). Under each paragraph, a Vietnamese meaning from `<audio base>.vi.json` when the package has one, hidden until tapped.
 - A listen to the end is counted per track and day (`track_listen`); with auto-tick on (default) reaching the target ticks the step. The player's step bar shows "n/target" and "Xong, bước tiếp →" ticks the step and starts the next step's track. Playlists are in plan order.
 - Practice modes in the player: ANSWER pauses briefly after each question (the mini-story method: answer out loud, fast), SHADOW after every sentence.
 - When a track ends the player repeats it by default (`AfterTrack.REPEAT`); the user can switch to stop-at-end or go-to-next, remembered in settings.
@@ -39,6 +39,7 @@ The app reads them at runtime either from the owner's Google Drive (the package 
 - A `manifest.json` at the root overrides all of the above (format: `Manifest` in `LibraryScanner.kt`).
 
 Timing file: `{"version":1,"sentences":[{"s":<startMs>,"e":<endMs>,"t":"<text>","p":<paragraph start>}]}`.
+Translation (optional): `<audio base>.vi.json` = `{"version":1,"paragraphs":["…"]}`, one entry per transcript paragraph; ignored when the count does not match.
 
 ## Google Drive setup (owner's Google Cloud project)
 - Drive API enabled; OAuth consent screen External, scope `.../auth/drive.readonly`, published (unverified is fine for personal use; Testing mode would expire grants weekly).

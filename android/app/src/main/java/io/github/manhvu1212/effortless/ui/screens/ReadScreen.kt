@@ -1,7 +1,9 @@
 package io.github.manhvu1212.effortless.ui.screens
 
 import android.content.ClipData
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -35,6 +37,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -86,6 +89,8 @@ data class ReadUi(
     val tracks: List<TrackEntity> = emptyList(),
     val selected: TrackEntity? = null,
     val transcript: Transcript? = null,
+    /** Vietnamese, one entry per paragraph; null when this transcript has none. */
+    val translation: List<String>? = null,
     val loading: Boolean = true,
 )
 
@@ -108,10 +113,13 @@ class ReadViewModel(private val c: AppContainer, private val lessonId: String) :
     }
 
     fun select(track: TrackEntity) {
-        _ui.update { it.copy(selected = track, transcript = null, loading = true) }
+        _ui.update { it.copy(selected = track, transcript = null, translation = null, loading = true) }
         viewModelScope.launch {
             val transcript = c.library.loadTranscript(track)
-            if (_ui.value.selected?.id == track.id) _ui.update { it.copy(transcript = transcript, loading = false) }
+            val translation = transcript?.let { c.library.loadTranslation(track, it) }
+            if (_ui.value.selected?.id == track.id) {
+                _ui.update { it.copy(transcript = transcript, translation = translation, loading = false) }
+            }
         }
     }
 
@@ -225,6 +233,7 @@ fun ReadScreen(contentPadding: PaddingValues, lessonId: String, onListen: () -> 
                     Text(stringResource(R.string.no_transcript), Modifier.align(Alignment.Center).padding(24.dp))
                 else -> ReadingText(
                     transcript,
+                    translation = ui.translation,
                     onTapWord = { word, sentence -> vm.lookUp(word, sentence) },
                     onLongPress = { menuSentence = it },
                 )
@@ -343,44 +352,72 @@ private fun LookupSheet(
  * long-press offers the whole sentence.
  */
 @Composable
-private fun ReadingText(transcript: Transcript, onTapWord: (String, Sentence) -> Unit, onLongPress: (Sentence) -> Unit) {
-    val paragraphs = remember(transcript) {
-        val out = mutableListOf<MutableList<Sentence>>()
-        transcript.sentences.forEach { if (it.paragraphStart || out.isEmpty()) out += mutableListOf(it) else out.last() += it }
-        out
-    }
+private fun ReadingText(
+    transcript: Transcript,
+    translation: List<String>?,
+    onTapWord: (String, Sentence) -> Unit,
+    onLongPress: (Sentence) -> Unit,
+) {
+    val paragraphs = transcript.paragraphs
+    // Hidden by default: the meaning is there for a paragraph that will not make sense, not to read instead.
+    val shown = remember(transcript) { mutableStateListOf<Int>() }
     LazyColumn(
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
         modifier = Modifier.fillMaxSize(),
     ) {
         items(paragraphs.size) { i ->
-            val sentences = paragraphs[i]
-            val ranges = remember(sentences) {
-                var at = 0
-                sentences.map { s -> (at until at + s.text.length).also { at += s.text.length + 1 } }
+            Column {
+                val sentences = paragraphs[i]
+                val ranges = remember(sentences) {
+                    var at = 0
+                    sentences.map { s -> (at until at + s.text.length).also { at += s.text.length + 1 } }
+                }
+                val text = remember(sentences) { buildAnnotatedString { append(sentences.joinToString(" ") { it.text }) } }
+                var layout by remember(text) { mutableStateOf<TextLayoutResult?>(null) }
+                Text(
+                    text,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = 19.sp, lineHeight = 30.sp),
+                    onTextLayout = { layout = it },
+                    modifier = Modifier.pointerInput(sentences) {
+                        fun sentenceAt(position: Int) = sentences.getOrNull(ranges.indexOfFirst { position in it || position == it.last + 1 })
+                        detectTapGestures(
+                            onTap = { offset ->
+                                val position = layout?.getOffsetForPosition(offset) ?: return@detectTapGestures
+                                val word = Words.wordAt(text.text, position) ?: return@detectTapGestures
+                                sentenceAt(position)?.let { onTapWord(word, it) }
+                            },
+                            onLongPress = { offset ->
+                                val position = layout?.getOffsetForPosition(offset) ?: return@detectTapGestures
+                                sentenceAt(position)?.let(onLongPress)
+                            },
+                        )
+                    },
+                )
+                val meaning = translation?.getOrNull(i)
+                if (meaning != null) {
+                    if (i in shown) {
+                        Text(
+                            meaning,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .padding(top = 6.dp)
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(8.dp))
+                                .clickable { shown.remove(i) }
+                                .padding(10.dp),
+                        )
+                    } else {
+                        Text(
+                            stringResource(R.string.show_meaning),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.clickable { shown.add(i) }.padding(vertical = 4.dp),
+                        )
+                    }
+                }
             }
-            val text = remember(sentences) { buildAnnotatedString { append(sentences.joinToString(" ") { it.text }) } }
-            var layout by remember(text) { mutableStateOf<TextLayoutResult?>(null) }
-            Text(
-                text,
-                style = MaterialTheme.typography.bodyLarge.copy(fontSize = 19.sp, lineHeight = 30.sp),
-                onTextLayout = { layout = it },
-                modifier = Modifier.pointerInput(sentences) {
-                    fun sentenceAt(position: Int) = sentences.getOrNull(ranges.indexOfFirst { position in it || position == it.last + 1 })
-                    detectTapGestures(
-                        onTap = { offset ->
-                            val position = layout?.getOffsetForPosition(offset) ?: return@detectTapGestures
-                            val word = Words.wordAt(text.text, position) ?: return@detectTapGestures
-                            sentenceAt(position)?.let { onTapWord(word, it) }
-                        },
-                        onLongPress = { offset ->
-                            val position = layout?.getOffsetForPosition(offset) ?: return@detectTapGestures
-                            sentenceAt(position)?.let(onLongPress)
-                        },
-                    )
-                },
-            )
         }
     }
 }

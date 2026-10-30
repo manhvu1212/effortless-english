@@ -73,6 +73,16 @@ class TranscriptTest {
     }
 
     @Test
+    fun translationMustLineUpWithParagraphs() {
+        val json = """{"sentences":[{"s":0,"e":900,"t":"Title","p":true},{"s":1000,"e":1900,"t":"A."},{"s":2000,"e":2900,"t":"B.","p":true}]}"""
+        val t = Transcript.fromTiming(json)
+        assertEquals(2, t.paragraphs.size)
+        assertEquals(listOf("Tiêu đề A.", "B."), Transcript.translation("""{"paragraphs":["Tiêu đề A.","B."]}""", t.paragraphs.size))
+        assertEquals(null, Transcript.translation("""{"paragraphs":["only one"]}""", t.paragraphs.size))
+        assertEquals(null, Transcript.translation("not json", t.paragraphs.size))
+    }
+
+    @Test
     fun indexAtFindsPlayingSentence() {
         val json = """{"sentences":[{"s":0,"e":900,"t":"A."},{"s":1000,"e":1900,"t":"B."},{"s":2000,"e":2900,"t":"C.","p":true}]}"""
         val t = Transcript.fromTiming(json)

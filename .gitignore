@@ -20,7 +20,7 @@ android/local.properties
 *.pem
 
 # Course content is copyrighted: never commit it
-content/
+/content/
 *.mp3
 *.m4a
 *.pdf

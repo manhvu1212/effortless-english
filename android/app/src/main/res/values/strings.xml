@@ -99,6 +99,7 @@
     <string name="today_all_done">✓ Xong hôm nay</string>
     <string name="title_read">Đọc</string>
     <string name="read_hint">Đọc thư giãn, đừng dịch từng từ. Chạm một từ để nghe thầy giải thích hoặc xem nghĩa; nhấn giữ một câu để lưu.</string>
+    <string name="show_meaning">Xem nghĩa đoạn này</string>
     <string name="translate_word">Dịch từ</string>
     <string name="translate_sentence">Dịch câu</string>
     <string name="save_card">Lưu thẻ</string>

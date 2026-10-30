@@ -64,6 +64,14 @@ class LibraryRepository(
         context.contentResolver.openInputStream(Uri.parse(uri))?.use { it.readBytes().toString(Charsets.UTF_8) }
     }.getOrNull()
 
+    /** The `<audio>.vi.json` next to the track's timing or text file, if there is one that fits [transcript]. */
+    suspend fun loadTranslation(track: TrackEntity, transcript: Transcript): List<String>? = withContext(Dispatchers.IO) {
+        val uri = track.timingUri?.replace(".timing.json", ".vi.json")
+            ?: track.transcriptUri?.replace(".txt", ".vi.json")
+            ?: return@withContext null
+        readText(uri)?.let { Transcript.translation(it, transcript.paragraphs.size) }
+    }
+
     suspend fun loadTranscript(track: TrackEntity): Transcript? = withContext(Dispatchers.IO) {
         track.timingUri?.let { uri -> readText(uri)?.let { runCatching { Transcript.fromTiming(it) }.getOrNull() } }
             ?: track.transcriptUri?.let { uri -> readText(uri)?.let { Transcript.fromPlainText(it) } }
