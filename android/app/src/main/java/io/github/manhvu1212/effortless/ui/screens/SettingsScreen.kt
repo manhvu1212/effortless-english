@@ -295,6 +295,17 @@ fun SettingsScreen(contentPadding: PaddingValues) {
                     }
                     Switch(settings.nagEnabled, { on -> vm.update(rescheduleReminders = true) { it.copy(nagEnabled = on) } })
                 }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(stringResource(R.string.status_setting), style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            stringResource(R.string.status_setting_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(settings.statusNotification, { on -> vm.update { it.copy(statusNotification = on) } })
+                }
             }
         }
         item {

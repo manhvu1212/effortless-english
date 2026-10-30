@@ -50,6 +50,8 @@ data class Settings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     /** Colours from the wallpaper (Android 12+) instead of the logo's blue. */
     val dynamicColor: Boolean = false,
+    /** An ongoing notification with today's progress and next step. */
+    val statusNotification: Boolean = true,
 )
 
 private val Context.dataStore by preferencesDataStore(name = "settings")
@@ -91,6 +93,7 @@ class SettingsRepository(context: Context) {
             answerGapMs = this[ANSWER_GAP] ?: defaults.answerGapMs,
             themeMode = this[THEME_MODE]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: defaults.themeMode,
             dynamicColor = this[DYNAMIC_COLOR] ?: defaults.dynamicColor,
+            statusNotification = this[STATUS_NOTIFICATION] ?: defaults.statusNotification,
         )
     }
 
@@ -116,6 +119,7 @@ class SettingsRepository(context: Context) {
         this[ANSWER_GAP] = s.answerGapMs
         this[THEME_MODE] = s.themeMode.name
         this[DYNAMIC_COLOR] = s.dynamicColor
+        this[STATUS_NOTIFICATION] = s.statusNotification
     }
 
     private companion object {
@@ -140,5 +144,6 @@ class SettingsRepository(context: Context) {
         val ANSWER_GAP = intPreferencesKey("answer_gap_ms")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
+        val STATUS_NOTIFICATION = booleanPreferencesKey("status_notification")
     }
 }

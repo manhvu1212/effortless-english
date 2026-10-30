@@ -144,6 +144,9 @@ interface StudyDao {
     @Query("SELECT COALESCE(SUM(listenedMs), 0) FROM daily_log")
     fun totalListened(): Flow<Long>
 
+    @Query("SELECT COALESCE(SUM(listenedMs), 0) FROM daily_log WHERE day = :day")
+    suspend fun listenedOnce(day: Long): Long
+
     @Query("SELECT COUNT(*) FROM daily_log WHERE day = :day AND (listenedMs > 0 OR steps != 0)")
     suspend fun activityCount(day: Long): Int
 

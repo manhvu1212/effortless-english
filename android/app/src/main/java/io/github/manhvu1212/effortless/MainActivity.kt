@@ -19,13 +19,18 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.manhvu1212.effortless.data.settings.ThemeMode
 import io.github.manhvu1212.effortless.reminders.Notifications
+import io.github.manhvu1212.effortless.reminders.StudyStatus
 import io.github.manhvu1212.effortless.ui.AppNav
 import io.github.manhvu1212.effortless.ui.theme.EffortlessTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private var openPlayer by mutableStateOf(false)
 
-    private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        // The status notification could not be shown before the permission was granted.
+        if (granted) container.scope.launch { StudyStatus.refresh(applicationContext, container) }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

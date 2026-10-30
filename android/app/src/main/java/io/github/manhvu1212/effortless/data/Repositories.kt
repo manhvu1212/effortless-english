@@ -200,6 +200,12 @@ class StudyRepository(
         return steps(db.library().tracksOnce(lessonId)).count { !it.optional && it.mask and done == 0L }
     }
 
+    /** The first required step of today's plan not done yet, reading included; null when all are. */
+    suspend fun nextStep(lessonId: String): StudyStep? {
+        val done = dao.logOnce(today(), lessonId)?.steps ?: 0
+        return steps(db.library().tracksOnce(lessonId)).firstOrNull { !it.optional && it.mask and done == 0L }
+    }
+
     suspend fun studiedToday(): Boolean = dao.activityCount(today()) > 0
 
     companion object {

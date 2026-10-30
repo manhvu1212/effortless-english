@@ -13,6 +13,7 @@ import io.github.manhvu1212.effortless.drive.DriveRepository
 import io.github.manhvu1212.effortless.player.PlayerController
 import io.github.manhvu1212.effortless.reminders.Notifications
 import io.github.manhvu1212.effortless.reminders.ReminderScheduler
+import io.github.manhvu1212.effortless.reminders.StudyStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -38,6 +39,8 @@ class EffortlessApp : Application() {
         super.onCreate()
         container = AppContainer(this)
         Notifications.createChannels(this)
+        StudyStatus.createChannel(this)
+        StudyStatus.observe(this, container)
         container.scope.launch {
             ReminderScheduler.rescheduleAll(this@EffortlessApp, container.settings.current())
             runCatching { container.drive.ensureAhead() }

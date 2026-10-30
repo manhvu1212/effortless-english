@@ -228,6 +228,16 @@
 
     <!-- Notifications -->
     <string name="channel_reminders">Nhắc lịch học</string>
+    <string name="channel_status">Tiến độ hôm nay</string>
+    <string name="status_next">Hôm nay %1$d/%2$d phút · Tiếp theo: %3$s</string>
+    <string name="status_steps_done">Hôm nay %1$d/%2$d phút · Đã xong các bước, nghe thêm cho đủ giờ</string>
+    <string name="status_all_done">Hôm nay đã xong ✓ %1$d/%2$d phút</string>
+    <plurals name="status_cards">
+        <item quantity="one">%d thẻ cần ôn</item>
+        <item quantity="other">%d thẻ cần ôn</item>
+    </plurals>
+    <string name="status_setting">Thông báo cố định với tiến độ hôm nay</string>
+    <string name="status_setting_hint">Luôn hiện trên thanh thông báo: số phút đã nghe, bước học tiếp theo và thẻ cần ôn</string>
     <string name="remind_title">Đến giờ học tiếng Anh</string>
     <plurals name="remind_steps">
         <item quantity="one">%2$s: còn %1$d bước hôm nay</item>

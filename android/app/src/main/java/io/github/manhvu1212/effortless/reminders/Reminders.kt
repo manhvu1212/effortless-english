@@ -77,17 +77,21 @@ object Notifications {
 object ReminderScheduler {
     const val KIND_STUDY = "study"
     const val KIND_NAG = "nag"
+    /** Just after midnight: a new day for the status notification. */
+    const val KIND_STATUS = "status"
     const val EXTRA_KIND = "kind"
     const val EXTRA_MINUTE = "minute"
     const val EXTRA_CODE = "code"
     private const val MAX_STUDY = 10
     private const val CODE_NAG = 100
+    private const val CODE_STATUS = 101
 
     fun rescheduleAll(context: Context, settings: Settings) {
         for (code in 0 until MAX_STUDY) cancel(context, code)
         cancel(context, CODE_NAG)
         settings.reminderTimes.take(MAX_STUDY).forEachIndexed { code, minute -> schedule(context, code, minute, KIND_STUDY) }
         if (settings.nagEnabled) schedule(context, CODE_NAG, settings.nagTime, KIND_NAG)
+        schedule(context, CODE_STATUS, 1, KIND_STATUS)
     }
 
     fun schedule(context: Context, code: Int, minuteOfDay: Int, kind: String) {
@@ -130,6 +134,7 @@ class ReminderReceiver : BroadcastReceiver() {
             try {
                 when (kind) {
                     ReminderScheduler.KIND_STUDY -> remindStudy(context)
+                    ReminderScheduler.KIND_STATUS -> StudyStatus.refresh(context, container)
                     ReminderScheduler.KIND_NAG -> if (!container.study.studiedToday()) {
                         Notifications.showNag(
                             context,
@@ -167,6 +172,7 @@ class RescheduleReceiver : BroadcastReceiver() {
         container.scope.launch {
             try {
                 ReminderScheduler.rescheduleAll(context, container.settings.current())
+                StudyStatus.refresh(context, container)
             } finally {
                 pending.finish()
             }
