@@ -1,0 +1,4 @@
+• Library sync keeps running with the screen off or in another app, with a progress notification
+• "Done reading" opens the next listening step (usually vocabulary) instead of the main audio
+• Reading tabs follow the study order
+• The day/minute/card chips on Today stay on one line

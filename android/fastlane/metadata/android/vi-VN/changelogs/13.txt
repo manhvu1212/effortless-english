@@ -1,0 +1,4 @@
+• Đồng bộ thư viện chạy tiếp khi tắt màn hình hoặc chuyển sang app khác, có thông báo tiến độ
+• "Đã đọc xong" mở đúng bước nghe tiếp theo (thường là Từ vựng) thay vì nhảy tới bài chính
+• Bài đọc sắp theo thứ tự học
+• Các ô ngày/phút/thẻ ở màn hình Hôm nay luôn cùng một dòng
