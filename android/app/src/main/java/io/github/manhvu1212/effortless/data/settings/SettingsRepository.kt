@@ -18,6 +18,8 @@ enum class ContentSource { FOLDER, DRIVE }
 /** What the player does when a track ends: the method is to listen to the same track many times. */
 enum class AfterTrack { REPEAT, STOP, NEXT }
 
+enum class ThemeMode { SYSTEM, LIGHT, DARK }
+
 /** Times of day are minutes after midnight. */
 data class Settings(
     val daysPerLesson: Int = 7,
@@ -45,6 +47,9 @@ data class Settings(
     val autoTick: Boolean = true,
     /** Pause after each mini-story question in answer mode. */
     val answerGapMs: Int = 2500,
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    /** Colours from the wallpaper (Android 12+) instead of the logo's blue. */
+    val dynamicColor: Boolean = false,
 )
 
 private val Context.dataStore by preferencesDataStore(name = "settings")
@@ -84,6 +89,8 @@ class SettingsRepository(context: Context) {
             dailyGoalMinutes = this[DAILY_GOAL] ?: defaults.dailyGoalMinutes,
             autoTick = this[AUTO_TICK] ?: defaults.autoTick,
             answerGapMs = this[ANSWER_GAP] ?: defaults.answerGapMs,
+            themeMode = this[THEME_MODE]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: defaults.themeMode,
+            dynamicColor = this[DYNAMIC_COLOR] ?: defaults.dynamicColor,
         )
     }
 
@@ -107,6 +114,8 @@ class SettingsRepository(context: Context) {
         this[DAILY_GOAL] = s.dailyGoalMinutes
         this[AUTO_TICK] = s.autoTick
         this[ANSWER_GAP] = s.answerGapMs
+        this[THEME_MODE] = s.themeMode.name
+        this[DYNAMIC_COLOR] = s.dynamicColor
     }
 
     private companion object {
@@ -129,5 +138,7 @@ class SettingsRepository(context: Context) {
         val DAILY_GOAL = intPreferencesKey("daily_goal_minutes")
         val AUTO_TICK = booleanPreferencesKey("auto_tick")
         val ANSWER_GAP = intPreferencesKey("answer_gap_ms")
+        val THEME_MODE = stringPreferencesKey("theme_mode")
+        val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
     }
 }

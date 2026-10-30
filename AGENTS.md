@@ -67,3 +67,4 @@ Translation (optional): `<audio base>.vi.json` = `{"version":1,"paragraphs":["â€
 - Compose-first: no XML layouts beyond resources.
 - ViewModels per screen (created through `appViewModel { â€¦ }` from the `AppContainer`), repository-backed flows via Room.
 - The UI is Vietnamese only: strings live in `res/values/strings.xml`; plurals carry both `one` and `other`.
+- Theme (`ui/theme/Theme.kt`): light and dark schemes built around the logo blue #2E6BD9; Settings picks system/light/dark (`ThemeMode`) and optional wallpaper colours. On Android 12+ `MainActivity` also sets `UiModeManager.setApplicationNightMode`, so the launch window matches. No hard-coded colours in screens: use `MaterialTheme.colorScheme`.

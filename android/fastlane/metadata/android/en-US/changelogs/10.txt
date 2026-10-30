@@ -1,0 +1,2 @@
+• Light and dark themes: pick System, Light or Dark in Settings → Giao diện
+• New colour scheme from the logo's blue; optional wallpaper colours (Android 12 and later)

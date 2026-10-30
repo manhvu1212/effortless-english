@@ -1,0 +1,2 @@
+• Giao diện sáng/tối: chọn Theo hệ thống, Sáng hoặc Tối trong Cài đặt → Giao diện
+• Bảng màu mới theo màu xanh của logo; tùy chọn lấy màu theo hình nền (Android 12 trở lên)

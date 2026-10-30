@@ -4,6 +4,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -60,6 +61,7 @@ import io.github.manhvu1212.effortless.data.SyncState
 import io.github.manhvu1212.effortless.ui.syncLabel
 import io.github.manhvu1212.effortless.data.settings.ContentSource
 import io.github.manhvu1212.effortless.data.settings.Settings
+import io.github.manhvu1212.effortless.data.settings.ThemeMode
 import io.github.manhvu1212.effortless.drive.DownloadWorker
 import io.github.manhvu1212.effortless.drive.FolderNotFoundException
 import io.github.manhvu1212.effortless.drive.NotAuthorizedException
@@ -308,6 +310,31 @@ fun SettingsScreen(contentPadding: PaddingValues) {
                 Text(stringResource(R.string.shadow_gap), style = MaterialTheme.typography.bodyMedium)
                 ChoiceRow(listOf(50, 100, 150, 200), settings.shadowGapPercent, { "$it%" }) { gap ->
                     vm.update { it.copy(shadowGapPercent = gap) }
+                }
+            }
+        }
+        item {
+            Section(stringResource(R.string.settings_appearance)) {
+                val names = mapOf(
+                    ThemeMode.SYSTEM to stringResource(R.string.theme_system),
+                    ThemeMode.LIGHT to stringResource(R.string.theme_light),
+                    ThemeMode.DARK to stringResource(R.string.theme_dark),
+                )
+                ChoiceRow(ThemeMode.entries, settings.themeMode, { names.getValue(it) }) { mode ->
+                    vm.update { it.copy(themeMode = mode) }
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(stringResource(R.string.dynamic_color), style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                stringResource(R.string.dynamic_color_hint),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Switch(settings.dynamicColor, { on -> vm.update { it.copy(dynamicColor = on) } })
+                    }
                 }
             }
         }

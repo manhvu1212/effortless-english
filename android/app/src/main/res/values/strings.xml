@@ -180,6 +180,12 @@
     <string name="add_reminder_short">Thêm giờ</string>
     <string name="nag_setting">Nhắc lại buổi tối nếu hôm đó chưa học</string>
     <string name="settings_player">Trình phát</string>
+    <string name="settings_appearance">Giao diện</string>
+    <string name="theme_system">Theo hệ thống</string>
+    <string name="theme_light">Sáng</string>
+    <string name="theme_dark">Tối</string>
+    <string name="dynamic_color">Màu theo hình nền</string>
+    <string name="dynamic_color_hint">Lấy màu từ hình nền điện thoại thay cho màu xanh của app</string>
     <string name="rewind_seconds">Tua lùi / tới mỗi lần</string>
     <string name="shadow_gap">Thời gian dừng khi shadowing (so với độ dài câu)</string>
 
