@@ -104,6 +104,8 @@ data class ReadUi(
     val transcript: Transcript? = null,
     /** Vietnamese, one entry per paragraph; null when this transcript has none. */
     val translation: List<String>? = null,
+    /** The listening step "done reading" opens. */
+    val next: TrackEntity? = null,
     val loading: Boolean = true,
 )
 
@@ -121,7 +123,7 @@ class ReadViewModel(private val c: AppContainer, private val lessonId: String) :
         viewModelScope.launch {
             val lesson = c.db.library().lessonOnce(lessonId)
             val tracks = c.db.library().tracksOnce(lessonId).filter { it.transcriptUri != null || it.timingUri != null }
-            _ui.value = ReadUi(lesson = lesson, tracks = tracks)
+            _ui.value = ReadUi(lesson = lesson, tracks = tracks, next = c.study.nextTrack(lessonId))
             tracks.firstOrNull()?.let { select(it) } ?: _ui.update { it.copy(loading = false) }
         }
     }
@@ -187,13 +189,14 @@ class ReadViewModel(private val c: AppContainer, private val lessonId: String) :
 
     suspend fun audioUri(track: TrackEntity): String = c.drive.playableUri(track)
 
-    /** Ticks the reading step and opens the first listening step. */
+    /** Ticks the reading step and opens the first listening step not done today. */
     fun finish(onListen: () -> Unit) {
         viewModelScope.launch {
             c.study.setStepDone(lessonId, StudyRepository.READ_MASK, true)
             val lesson = _ui.value.lesson ?: return@launch
             val tracks = c.db.library().tracksOnce(lessonId)
-            if (tracks.isNotEmpty()) c.player.open(lesson, tracks, 0, play = true)
+            val next = c.study.nextTrack(lessonId)
+            if (tracks.isNotEmpty()) c.player.open(lesson, tracks, tracks.indexOfFirst { it.id == next?.id }.coerceAtLeast(0), play = true)
             onListen()
         }
     }
@@ -266,7 +269,10 @@ fun ReadScreen(contentPadding: PaddingValues, lessonId: String, onListen: () -> 
         Surface(tonalElevation = 3.dp) {
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.read_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Button(onClick = { vm.finish(onListen) }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.read_done)) }
+                Button(onClick = { vm.finish(onListen) }, modifier = Modifier.fillMaxWidth()) {
+                    val next = ui.next
+                    Text(if (next != null) stringResource(R.string.read_done, stringResource(next.kind.label())) else stringResource(R.string.read_done_plain))
+                }
             }
         }
     }

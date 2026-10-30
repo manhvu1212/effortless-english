@@ -106,6 +106,13 @@ class StudyRepository(
             StudyStep(trackMask(it), it, StudyPlan.target(it.kind), StudyPlan.optional(it.kind))
         }
 
+    /** The first required listening step not done today, in plan order; the first track when all are done. */
+    suspend fun nextTrack(lessonId: String): TrackEntity? {
+        val done = dao.logOnce(today(), lessonId)?.steps ?: 0
+        val listening = steps(db.library().tracksOnce(lessonId)).filter { it.track != null }
+        return (listening.firstOrNull { !it.optional && done and it.mask == 0L } ?: listening.firstOrNull())?.track
+    }
+
     private fun requiredMask(tracks: List<TrackEntity>): Long =
         steps(tracks).filter { !it.optional }.fold(0L) { acc, step -> acc or step.mask }
 
