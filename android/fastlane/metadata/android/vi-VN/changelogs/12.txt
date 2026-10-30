@@ -1,0 +1,3 @@
+• "Đã đọc xong" mở đúng bước nghe tiếp theo (thường là Từ vựng) thay vì nhảy tới bài chính
+• Bài đọc sắp theo thứ tự học
+• Các ô ngày/phút/thẻ ở màn hình Hôm nay luôn cùng một dòng
