@@ -32,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -40,6 +41,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import io.github.manhvu1212.effortless.AppContainer
 import io.github.manhvu1212.effortless.R
+import io.github.manhvu1212.effortless.container
+import io.github.manhvu1212.effortless.data.SyncState
 import io.github.manhvu1212.effortless.data.StudyStep
 import io.github.manhvu1212.effortless.data.db.CourseEntity
 import io.github.manhvu1212.effortless.data.db.LessonEntity
@@ -154,6 +157,7 @@ fun TodayScreen(
 ) {
     val vm = appViewModel { TodayViewModel(it) }
     val ui by vm.ui.collectAsStateWithLifecycle()
+    val syncing = LocalContext.current.container.sync.state.collectAsStateWithLifecycle().value is SyncState.Running
 
     LazyColumn(
         contentPadding = PaddingValues(16.dp, 16.dp, 16.dp, 16.dp + contentPadding.calculateBottomPadding()),
@@ -169,6 +173,10 @@ fun TodayScreen(
         }
         if (!ui.loaded) return@LazyColumn
         val lesson = ui.lesson
+        if (lesson == null && !ui.hasLibrary && syncing) {
+            item { MessageCard(stringResource(R.string.library_syncing), null, {}) }
+            return@LazyColumn
+        }
         if (lesson == null) {
             item {
                 MessageCard(

@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -34,6 +35,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import io.github.manhvu1212.effortless.AppContainer
 import io.github.manhvu1212.effortless.R
+import io.github.manhvu1212.effortless.container
+import io.github.manhvu1212.effortless.data.SyncState
 import io.github.manhvu1212.effortless.data.db.CourseEntity
 import io.github.manhvu1212.effortless.data.db.LessonEntity
 import io.github.manhvu1212.effortless.data.db.LessonProgressEntity
@@ -70,6 +73,7 @@ class LibraryViewModel(c: AppContainer) : ViewModel() {
 fun LibraryScreen(contentPadding: PaddingValues, onOpenCourse: (String) -> Unit, onOpenSettings: () -> Unit) {
     val vm = appViewModel { LibraryViewModel(it) }
     val courses by vm.courses.collectAsStateWithLifecycle()
+    val syncing = LocalContext.current.container.sync.state.collectAsStateWithLifecycle().value is SyncState.Running
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -78,7 +82,8 @@ fun LibraryScreen(contentPadding: PaddingValues, onOpenCourse: (String) -> Unit,
         val list = courses ?: return@LazyColumn
         if (list.isEmpty()) {
             item {
-                MessageCard(stringResource(R.string.no_library), stringResource(R.string.choose_folder), onOpenSettings)
+                if (syncing) MessageCard(stringResource(R.string.library_syncing), null, {})
+                else MessageCard(stringResource(R.string.no_library), stringResource(R.string.choose_folder), onOpenSettings)
             }
         }
         items(list, key = { it.course.id }) { row ->

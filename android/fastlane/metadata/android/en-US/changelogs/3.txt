@@ -1,0 +1,2 @@
+• Google Drive sync keeps going when you leave Settings
+• Sync progress is shown on every screen

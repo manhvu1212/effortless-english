@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import io.github.manhvu1212.effortless.data.CardRepository
 import io.github.manhvu1212.effortless.data.LibraryRepository
+import io.github.manhvu1212.effortless.data.LibrarySync
 import io.github.manhvu1212.effortless.data.StudyRepository
 import io.github.manhvu1212.effortless.data.db.AppDatabase
 import io.github.manhvu1212.effortless.data.settings.SettingsRepository
@@ -25,6 +26,7 @@ class AppContainer(context: Context) {
     val cards = CardRepository(db)
     val drive = DriveRepository(context, db, settings, study)
     val player = PlayerController(context, db, library, study, settings, scope, drive)
+    val sync = LibrarySync(scope, library, drive)
 }
 
 class EffortlessApp : Application() {

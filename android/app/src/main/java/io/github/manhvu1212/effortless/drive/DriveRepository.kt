@@ -12,6 +12,8 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 import io.github.manhvu1212.effortless.data.ScanSummary
 import io.github.manhvu1212.effortless.data.StudyRepository
+import io.github.manhvu1212.effortless.data.SyncProgress
+import io.github.manhvu1212.effortless.data.SyncStage
 import io.github.manhvu1212.effortless.data.content.LibraryScanner
 import io.github.manhvu1212.effortless.data.db.AppDatabase
 import io.github.manhvu1212.effortless.data.db.RemoteFileEntity
@@ -29,6 +31,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
+import java.util.concurrent.atomic.AtomicInteger
 
 class FolderNotFoundException(val name: String) : IOException("No Drive folder named \"$name\"")
 
@@ -49,25 +52,32 @@ class DriveRepository(
     /** Mirror of the Drive folder: the same relative paths as in manifest.json. */
     val root: File = File(context.getExternalFilesDir(null) ?: context.filesDir, "content")
 
-    suspend fun connect(folderName: String): ScanSummary {
+    suspend fun connect(folderName: String, progress: SyncProgress = { _, _, _ -> }): ScanSummary {
+        progress(SyncStage.LISTING, 0, 0)
         val id = api.findFolder(folderName.trim()) ?: throw FolderNotFoundException(folderName.trim())
         settings.update { it.copy(driveFolderId = id, driveFolderName = folderName.trim()) }
-        return sync()
+        return sync(progress)
     }
 
-    suspend fun sync(): ScanSummary = withContext(Dispatchers.IO) {
+    suspend fun sync(progress: SyncProgress = { _, _, _ -> }): ScanSummary = withContext(Dispatchers.IO) {
         val folderId = settings.current().driveFolderId ?: throw FolderNotFoundException(settings.current().driveFolderName)
+        progress(SyncStage.LISTING, 0, 0)
         val entries = api.listTree(folderId)
         db.remoteFiles().replaceAll(entries.map { RemoteFileEntity(it.path, it.id, it.size, it.md5) })
+        val small = entries.filter { isSmall(it.path) }
+        val done = AtomicInteger()
+        progress(SyncStage.FILES, 0, small.size)
         val limit = Semaphore(DriveApi.PARALLEL)
         coroutineScope {
-            entries.filter { isSmall(it.path) }.map { entry ->
+            small.map { entry ->
                 async {
                     val file = File(root, entry.path)
                     if (!file.exists() || file.length() != entry.size) limit.withPermit { api.download(entry.id, file) }
+                    progress(SyncStage.FILES, done.incrementAndGet(), small.size)
                 }
             }.awaitAll()
         }
+        progress(SyncStage.BUILDING, 0, 0)
         val manifest = File(root, LibraryScanner.MANIFEST).takeIf { it.exists() }
             ?: throw IOException("${LibraryScanner.MANIFEST} is missing from the Drive folder")
         val library = LibraryScanner.fromManifest(LibraryScanner.parseManifest(manifest.readText())) { path ->

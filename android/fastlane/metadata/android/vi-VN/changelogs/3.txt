@@ -1,0 +1,2 @@
+• Đồng bộ Google Drive chạy tiếp khi bạn rời màn hình Cài đặt
+• Thanh tiến độ đồng bộ hiện trên mọi màn hình

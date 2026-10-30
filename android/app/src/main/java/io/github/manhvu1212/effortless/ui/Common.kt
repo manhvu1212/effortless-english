@@ -3,11 +3,14 @@ package io.github.manhvu1212.effortless.ui
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.manhvu1212.effortless.AppContainer
 import io.github.manhvu1212.effortless.R
 import io.github.manhvu1212.effortless.container
+import io.github.manhvu1212.effortless.data.SyncStage
+import io.github.manhvu1212.effortless.data.SyncState
 import io.github.manhvu1212.effortless.data.db.TrackKind
 
 @Composable
@@ -24,6 +27,14 @@ fun TrackKind.label(): Int = when (this) {
     TrackKind.POINT_OF_VIEW -> R.string.kind_pov
     TrackKind.COMMENTARY -> R.string.kind_commentary
     TrackKind.OTHER -> R.string.kind_other
+}
+
+@Composable
+fun syncLabel(state: SyncState.Running): String = when (state.stage) {
+    SyncStage.LISTING -> stringResource(R.string.sync_listing)
+    SyncStage.FILES -> stringResource(R.string.sync_files, state.done, state.total)
+    SyncStage.BUILDING -> stringResource(R.string.sync_building)
+    SyncStage.SCANNING -> stringResource(R.string.sync_scanning)
 }
 
 fun formatClock(ms: Long): String {

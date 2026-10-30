@@ -46,6 +46,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import io.github.manhvu1212.effortless.R
 import io.github.manhvu1212.effortless.container
+import io.github.manhvu1212.effortless.data.SyncState
 import io.github.manhvu1212.effortless.ui.screens.CardsScreen
 import io.github.manhvu1212.effortless.ui.screens.CourseScreen
 import io.github.manhvu1212.effortless.ui.screens.LessonScreen
@@ -82,38 +83,56 @@ fun AppNav(openPlayer: Boolean, onPlayerOpened: () -> Unit) {
         }
     }
 
+    val sync by LocalContext.current.container.sync.state.collectAsStateWithLifecycle()
+
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        stringResource(
-                            when {
-                                tab != null -> tab.label
-                                route == PLAYER -> R.string.title_player
-                                route == REVIEW -> R.string.title_review
-                                route == SETTINGS -> R.string.title_settings
-                                route?.startsWith("course") == true -> R.string.tab_library
-                                else -> R.string.title_lesson
-                            }
+            Column {
+                TopAppBar(
+                    title = {
+                        Text(
+                            stringResource(
+                                when {
+                                    tab != null -> tab.label
+                                    route == PLAYER -> R.string.title_player
+                                    route == REVIEW -> R.string.title_review
+                                    route == SETTINGS -> R.string.title_settings
+                                    route?.startsWith("course") == true -> R.string.tab_library
+                                    else -> R.string.title_lesson
+                                }
+                            )
                         )
+                    },
+                    navigationIcon = {
+                        if (tab == null) {
+                            IconButton(onClick = { nav.popBackStack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
+                            }
+                        }
+                    },
+                    actions = {
+                        if (tab != null) {
+                            IconButton(onClick = { nav.navigate(SETTINGS) }) {
+                                Icon(Icons.Default.Settings, stringResource(R.string.title_settings))
+                            }
+                        }
+                    },
+                )
+                // A library sync runs app-wide; show it on every screen.
+                (sync as? SyncState.Running)?.let { running ->
+                    if (running.total > 0) {
+                        LinearProgressIndicator(progress = { running.done.toFloat() / running.total }, modifier = Modifier.fillMaxWidth())
+                    } else {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    }
+                    Text(
+                        syncLabel(running),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                     )
-                },
-                navigationIcon = {
-                    if (tab == null) {
-                        IconButton(onClick = { nav.popBackStack() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
-                        }
-                    }
-                },
-                actions = {
-                    if (tab != null) {
-                        IconButton(onClick = { nav.navigate(SETTINGS) }) {
-                            Icon(Icons.Default.Settings, stringResource(R.string.title_settings))
-                        }
-                    }
-                },
-            )
+                }
+            }
         },
         bottomBar = {
             // NavigationBar pads itself for the gesture bar; without it the column has to.
