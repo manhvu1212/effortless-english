@@ -420,7 +420,7 @@ def main() -> int:
     parser.add_argument("out", type=Path)
     parser.add_argument("--only", help='glob on "Course/Lesson", e.g. "1. Original English/1.0*"')
     parser.add_argument("--model", default="small.en")
-    parser.add_argument("--texts", type=Path, help="cleaned transcripts for tracks without a PDF: TEXTS/<course>/<lesson>/<audio base>.txt")
+    parser.add_argument("--texts", type=Path, help="cleaned transcripts, used instead of Whisper's text or the PDF: TEXTS/<course>/<lesson>/<audio base>.txt")
     parser.add_argument("--no-whisper", action="store_true", help="classify and convert PDFs only")
     parser.add_argument("--dry-run", action="store_true", help="print the plan, write nothing")
     args = parser.parse_args()
@@ -455,8 +455,8 @@ def main() -> int:
             copy_if_changed(track.audio, out_dir / track.audio.name)
             paragraphs = pdf_paragraphs(track.pdf) if track.pdf else []
             cleaned = args.texts / rel_dir / f"{base}.txt" if args.texts else None
-            if not paragraphs and cleaned and cleaned.exists():
-                # Whisper's own text punctuated and paragraphed by hand; timed like a PDF.
+            if cleaned and cleaned.exists():
+                # Whisper's text punctuated, or the PDF's text re-paragraphed; timed like a PDF.
                 paragraphs = [p.strip() for p in cleaned.read_text(encoding="utf-8").split("\n\n") if p.strip()]
             if args.no_whisper:
                 if paragraphs:
