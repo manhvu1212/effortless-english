@@ -246,6 +246,14 @@ fun SettingsScreen(contentPadding: PaddingValues) {
                 ChoiceRow(listOf(3, 5, 7, 10, 14), settings.daysPerLesson, { "$it" }) { days ->
                     vm.update { it.copy(daysPerLesson = days) }
                 }
+                Text(stringResource(R.string.daily_goal), style = MaterialTheme.typography.bodyMedium)
+                ChoiceRow(listOf(30, 60, 90, 120), settings.dailyGoalMinutes, { "$it" }) { minutes ->
+                    vm.update { it.copy(dailyGoalMinutes = minutes) }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.auto_tick), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                    Switch(settings.autoTick, { on -> vm.update { it.copy(autoTick = on) } })
+                }
             }
         }
         item {
@@ -292,6 +300,10 @@ fun SettingsScreen(contentPadding: PaddingValues) {
                 Text(stringResource(R.string.rewind_seconds), style = MaterialTheme.typography.bodyMedium)
                 ChoiceRow(listOf(3, 5, 10, 15), settings.rewindSeconds, { "${it}s" }) { seconds ->
                     vm.update { it.copy(rewindSeconds = seconds) }
+                }
+                Text(stringResource(R.string.answer_gap), style = MaterialTheme.typography.bodyMedium)
+                ChoiceRow(listOf(1500, 2500, 4000), settings.answerGapMs, { "%.1fs".format(it / 1000f) }) { ms ->
+                    vm.update { it.copy(answerGapMs = ms) }
                 }
                 Text(stringResource(R.string.shadow_gap), style = MaterialTheme.typography.bodyMedium)
                 ChoiceRow(listOf(50, 100, 150, 200), settings.shadowGapPercent, { "$it%" }) { gap ->

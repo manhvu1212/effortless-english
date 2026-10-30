@@ -39,6 +39,12 @@ data class Settings(
     val rewindSeconds: Int = 5,
     val shadowGapPercent: Int = 100,
     val afterTrack: AfterTrack = AfterTrack.REPEAT,
+    /** The guides ask for at least an hour a day, two hours being best. */
+    val dailyGoalMinutes: Int = 60,
+    /** Tick a listening step once its target number of listens is reached. */
+    val autoTick: Boolean = true,
+    /** Pause after each mini-story question in answer mode. */
+    val answerGapMs: Int = 2500,
 )
 
 private val Context.dataStore by preferencesDataStore(name = "settings")
@@ -75,6 +81,9 @@ class SettingsRepository(context: Context) {
             rewindSeconds = this[REWIND_SECONDS] ?: defaults.rewindSeconds,
             shadowGapPercent = this[SHADOW_GAP] ?: defaults.shadowGapPercent,
             afterTrack = this[AFTER_TRACK]?.let { runCatching { AfterTrack.valueOf(it) }.getOrNull() } ?: defaults.afterTrack,
+            dailyGoalMinutes = this[DAILY_GOAL] ?: defaults.dailyGoalMinutes,
+            autoTick = this[AUTO_TICK] ?: defaults.autoTick,
+            answerGapMs = this[ANSWER_GAP] ?: defaults.answerGapMs,
         )
     }
 
@@ -95,6 +104,9 @@ class SettingsRepository(context: Context) {
         this[REWIND_SECONDS] = s.rewindSeconds
         this[SHADOW_GAP] = s.shadowGapPercent
         this[AFTER_TRACK] = s.afterTrack.name
+        this[DAILY_GOAL] = s.dailyGoalMinutes
+        this[AUTO_TICK] = s.autoTick
+        this[ANSWER_GAP] = s.answerGapMs
     }
 
     private companion object {
@@ -114,5 +126,8 @@ class SettingsRepository(context: Context) {
         val REWIND_SECONDS = intPreferencesKey("rewind_seconds")
         val SHADOW_GAP = intPreferencesKey("shadow_gap_percent")
         val AFTER_TRACK = stringPreferencesKey("after_track")
+        val DAILY_GOAL = intPreferencesKey("daily_goal_minutes")
+        val AUTO_TICK = booleanPreferencesKey("auto_tick")
+        val ANSWER_GAP = intPreferencesKey("answer_gap_ms")
     }
 }

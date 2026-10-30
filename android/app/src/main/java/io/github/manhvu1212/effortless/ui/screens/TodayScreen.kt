@@ -73,6 +73,7 @@ data class TodayUi(
     val listenedTodayMs: Long = 0,
     val progress: LessonProgressEntity? = null,
     val daysPerLesson: Int = 7,
+    val dailyGoalMinutes: Int = 60,
     val streak: Int = 0,
     val dueCards: Int = 0,
     /** Full listens today per track id. */
@@ -88,10 +89,11 @@ class TodayViewModel(private val c: AppContainer) : ViewModel() {
         c.db.study().allProgress(),
         c.settings.settings,
     ) { lessons, progress, settings ->
-        Triple(lessons.isNotEmpty(), c.study.currentLesson(lessons, progress, settings.pinnedLessonId), settings.daysPerLesson)
-    }.flatMapLatest { (hasLibrary, lesson, daysPerLesson) ->
+        Triple(lessons.isNotEmpty(), c.study.currentLesson(lessons, progress, settings.pinnedLessonId), settings)
+    }.flatMapLatest { (hasLibrary, lesson, settings) ->
+        val daysPerLesson = settings.daysPerLesson
         if (lesson == null) {
-            flowOf(TodayUi(loaded = true, hasLibrary = hasLibrary, daysPerLesson = daysPerLesson))
+            flowOf(TodayUi(loaded = true, hasLibrary = hasLibrary, daysPerLesson = daysPerLesson, dailyGoalMinutes = settings.dailyGoalMinutes))
         } else {
             combine(
                 c.db.library().tracks(lesson.id),
@@ -110,6 +112,7 @@ class TodayViewModel(private val c: AppContainer) : ViewModel() {
                     listenedTodayMs = log?.listenedMs ?: 0,
                     progress = progress,
                     daysPerLesson = daysPerLesson,
+                    dailyGoalMinutes = settings.dailyGoalMinutes,
                     listens = listens,
                 )
             }
@@ -172,7 +175,7 @@ fun TodayScreen(
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 StatChip(Icons.Default.LocalFireDepartment, pluralStringResource(R.plurals.streak_days, ui.streak, ui.streak), Modifier.weight(1f), stringResource(R.string.stat_streak))
-                StatChip(Icons.Default.Timer, stringResource(R.string.minutes_today, minutesOf(ui.listenedTodayMs)), Modifier.weight(1f), stringResource(R.string.listened_today))
+                StatChip(Icons.Default.Timer, stringResource(R.string.minutes_goal, minutesOf(ui.listenedTodayMs), ui.dailyGoalMinutes), Modifier.weight(1f), stringResource(R.string.listened_today))
                 StatChip(Icons.Default.Style, pluralStringResource(R.plurals.cards_due, ui.dueCards, ui.dueCards), Modifier.weight(1f), stringResource(R.string.cards_due_label), onClick = onOpenReview)
             }
         }
@@ -293,11 +296,12 @@ fun StepRow(
                     track.kind == TrackKind.MINI_STORY -> stringResource(R.string.step_mini_story_hint)
                     else -> track.title
                 }
-                if (listens > 0) {
+                if (track != null) {
                     Text(
-                        pluralStringResource(R.plurals.listened_times, listens, listens),
+                        stringResource(R.string.listens_short, listens, step.target) +
+                            if (step.optional) " · " + stringResource(R.string.step_optional) else "",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = if (listens >= step.target) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 Text(hint, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

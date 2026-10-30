@@ -25,6 +25,7 @@ import io.github.manhvu1212.effortless.data.db.AppDatabase
 import io.github.manhvu1212.effortless.data.db.LessonEntity
 import io.github.manhvu1212.effortless.data.db.TrackEntity
 import io.github.manhvu1212.effortless.data.settings.AfterTrack
+import io.github.manhvu1212.effortless.domain.StudyPlan
 import io.github.manhvu1212.effortless.data.settings.SettingsRepository
 import io.github.manhvu1212.effortless.drive.DriveApi
 import io.github.manhvu1212.effortless.drive.DriveRepository
@@ -49,6 +50,13 @@ fun dataSourceFactory(context: Context, drive: DriveRepository): DataSource.Fact
         spec.withAdditionalHeaders(mapOf("Authorization" to "Bearer $token"))
     }
 
+/**
+ * Speaking practice while listening. ANSWER pauses after each question, briefly, so the learner
+ * answers out loud and fast (the mini-story method); SHADOW pauses after every sentence for as long
+ * as it lasted, to repeat it.
+ */
+enum class Practice { OFF, ANSWER, SHADOW }
+
 data class Playlist(val items: List<MediaItem>, val index: Int, val startMs: Long)
 
 /** Speeds the car's speed button steps through. */
@@ -65,8 +73,8 @@ data class PlayerState(
     val loopA: Long? = null,
     val loopB: Long? = null,
     val afterTrack: AfterTrack = AfterTrack.REPEAT,
-    val shadowing: Boolean = false,
-    /** Set while shadowing holds the pause after a sentence, for the user to repeat it. */
+    val practice: Practice = Practice.OFF,
+    /** Set while practice holds the pause after a sentence, for the user to answer or repeat it. */
     val shadowPause: Boolean = false,
 ) {
     val track: TrackEntity? get() = tracks.getOrNull(index)
@@ -171,8 +179,11 @@ class PlayerController(
     }
 
     /** Loads the lesson as a playlist starting at [index], resuming where that track was left. */
-    fun open(lesson: LessonEntity, tracks: List<TrackEntity>, index: Int, play: Boolean = true) {
-        if (tracks.isEmpty()) return
+    fun open(lesson: LessonEntity, lessonTracks: List<TrackEntity>, startIndex: Int, play: Boolean = true) {
+        if (lessonTracks.isEmpty()) return
+        // Played in the order they are studied, so "next" follows the plan.
+        val tracks = StudyPlan.order(lessonTracks)
+        val index = tracks.indexOf(lessonTracks[startIndex]).coerceAtLeast(0)
         val current = _state.value
         if (current.lesson?.id == lesson.id && current.tracks.map { it.id } == tracks.map { it.id }) {
             if (current.index != index) player.seekTo(index, 0)
@@ -183,7 +194,7 @@ class PlayerController(
             val playlist = playlist(lesson, tracks, index)
             val speed = settings.current().speed
             val afterTrack = settings.current().afterTrack
-            _state.update { PlayerState(lesson = lesson, tracks = tracks, index = index, speed = speed, shadowing = it.shadowing, afterTrack = afterTrack) }
+            _state.update { PlayerState(lesson = lesson, tracks = tracks, index = index, speed = speed, practice = it.practice, afterTrack = afterTrack) }
             player.setMediaItems(playlist.items, playlist.index, playlist.startMs)
             player.setPlaybackSpeed(speed)
             applyAfterTrack(afterTrack)
@@ -204,14 +215,14 @@ class PlayerController(
     suspend fun playlistForTrack(trackId: String): Playlist? {
         val track = db.library().track(trackId) ?: return null
         val lesson = db.library().lessonOnce(track.lessonId) ?: return null
-        val tracks = db.library().tracksOnce(lesson.id)
+        val tracks = StudyPlan.order(db.library().tracksOnce(lesson.id))
         return playlist(lesson, tracks, tracks.indexOfFirst { it.id == trackId }.coerceAtLeast(0))
     }
 
     /** Starts at the track played last when it belongs to this lesson, otherwise at the first one. */
     suspend fun playlistForLesson(lessonId: String): Playlist? {
         val lesson = db.library().lessonOnce(lessonId) ?: return null
-        val tracks = db.library().tracksOnce(lessonId).ifEmpty { return null }
+        val tracks = StudyPlan.order(db.library().tracksOnce(lessonId)).ifEmpty { return null }
         val last = settings.current().lastTrackId
         return playlist(lesson, tracks, tracks.indexOfFirst { it.id == last }.coerceAtLeast(0))
     }
@@ -271,7 +282,7 @@ class PlayerController(
                     tracks = tracks,
                     index = player.currentMediaItemIndex,
                     speed = speed,
-                    shadowing = it.shadowing,
+                    practice = it.practice,
                     afterTrack = afterTrack,
                 )
             }
@@ -370,10 +381,21 @@ class PlayerController(
         player.pauseAtEndOfMediaItems = mode == AfterTrack.STOP
     }
 
+    /** Off → answer → shadow → off. */
+    fun cyclePractice() {
+        setPractice(Practice.entries[(_state.value.practice.ordinal + 1) % Practice.entries.size])
+    }
+
+    fun setPractice(practice: Practice) {
+        cancelShadowPause()
+        shadowWatch = null
+        _state.update { it.copy(practice = practice) }
+    }
+
     fun toggleShadowing() {
         cancelShadowPause()
         shadowWatch = null
-        _state.update { it.copy(shadowing = !it.shadowing) }
+        _state.update { it.copy(practice = if (it.practice == Practice.OFF) Practice.SHADOW else Practice.OFF) }
     }
 
     private fun loadTranscript() {
@@ -410,7 +432,7 @@ class PlayerController(
             shadowWatch = null
             return
         }
-        if (s.shadowing && s.loopB == null) shadowTick(position)
+        if (s.practice != Practice.OFF && s.loopB == null) shadowTick(position)
         if (now - lastSaveAt > 10_000) flush()
     }
 
@@ -425,17 +447,26 @@ class PlayerController(
         val sentence = transcript.sentences.getOrNull(watched) ?: return
         if (position >= sentence.endMs!!) {
             shadowWatch = watched + 1
+            val answering = _state.value.practice == Practice.ANSWER
+            if (answering && !isQuestion(sentence.text)) return
             player.pause()
             _state.update { it.copy(shadowPause = true) }
             shadowJob = scope.launch(Dispatchers.Main) {
-                val gapPercent = settings.current().shadowGapPercent
-                val length = (sentence.endMs - sentence.startMs!!) / _state.value.speed
-                delay((length * gapPercent / 100).toLong().coerceIn(800, 20_000))
+                val s = settings.current()
+                val pause = if (answering) {
+                    s.answerGapMs.toLong()
+                } else {
+                    val length = (sentence.endMs - sentence.startMs!!) / _state.value.speed
+                    (length * s.shadowGapPercent / 100).toLong().coerceIn(800, 20_000)
+                }
+                delay(pause)
                 _state.update { it.copy(shadowPause = false) }
                 player.play()
             }
         }
     }
+
+    private fun isQuestion(text: String): Boolean = text.trimEnd(' ', '"', '”', '’', ')').endsWith("?")
 
     private fun cancelShadowPause() {
         shadowJob?.cancel()

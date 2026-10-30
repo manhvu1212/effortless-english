@@ -88,6 +88,7 @@ import io.github.manhvu1212.effortless.domain.today
 import io.github.manhvu1212.effortless.data.StudyRepository
 import io.github.manhvu1212.effortless.data.settings.AfterTrack
 import io.github.manhvu1212.effortless.player.PlayerState
+import io.github.manhvu1212.effortless.player.Practice
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -108,9 +109,14 @@ data class StepUi(
     val total: Int,
     val kind: TrackKind,
     val listens: Int,
+    val target: Int,
+    val optional: Boolean,
     val done: Boolean,
-    val hasNext: Boolean,
-)
+    /** The track of the next listening step, if any. */
+    val nextTrackId: String?,
+) {
+    val hasNext: Boolean get() = nextTrackId != null
+}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PlayerViewModel(private val c: AppContainer) : ViewModel() {
@@ -132,8 +138,20 @@ class PlayerViewModel(private val c: AppContainer) : ViewModel() {
                 ) { tracks, log, listens ->
                     val steps = c.study.steps(tracks)
                     val i = steps.indexOfFirst { it.track?.id == track.id }
-                    if (i < 0) null
-                    else StepUi(i + 1, steps.size, track.kind, listens[track.id] ?: 0, (log?.steps ?: 0) and steps[i].mask != 0L, i < steps.lastIndex)
+                    if (i < 0) {
+                        null
+                    } else {
+                        StepUi(
+                            number = i + 1,
+                            total = steps.size,
+                            kind = track.kind,
+                            listens = listens[track.id] ?: 0,
+                            target = steps[i].target,
+                            optional = steps[i].optional,
+                            done = (log?.steps ?: 0) and steps[i].mask != 0L,
+                            nextTrackId = steps.drop(i + 1).firstNotNullOfOrNull { it.track?.id },
+                        )
+                    }
                 }
             }
         }
@@ -143,10 +161,12 @@ class PlayerViewModel(private val c: AppContainer) : ViewModel() {
     fun completeStep() {
         val s = state.value
         val track = s.track ?: return
+        val next = step.value?.nextTrackId
         viewModelScope.launch {
             c.study.setStepDone(track.lessonId, StudyRepository.trackMask(track), true)
-            if (s.index + 1 < s.tracks.size) {
-                player.selectTrack(s.index + 1)
+            val index = s.tracks.indexOfFirst { it.id == next }
+            if (index >= 0) {
+                player.selectTrack(index)
                 player.play()
             }
         }
@@ -237,7 +257,14 @@ fun PlayerScreen(contentPadding: PaddingValues) {
             }
         }
 
-        step?.let { StepBar(it, onComplete = vm::completeStep) }
+        step?.let {
+            StepBar(
+                it,
+                practice = state.practice,
+                onComplete = vm::completeStep,
+                onAnswerMode = { vm.player.setPractice(Practice.ANSWER) },
+            )
+        }
         Controls(state, vm)
     }
 
@@ -417,22 +444,36 @@ private fun Controls(state: PlayerState, vm: PlayerViewModel) {
                     )
                 }
                 AfterTrackButton(state.afterTrack, onClick = vm.player::cycleAfterTrack)
-                IconToggleButton(checked = state.shadowing, onCheckedChange = { vm.player.toggleShadowing() }) {
-                    Icon(
-                        Icons.Default.RecordVoiceOver,
-                        stringResource(R.string.shadowing),
-                        tint = if (state.shadowing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                PracticeButton(state.practice, onClick = vm.player::cyclePractice)
             }
             if (state.shadowPause) {
                 Text(
-                    stringResource(R.string.shadow_your_turn),
+                    stringResource(if (state.practice == Practice.ANSWER) R.string.answer_your_turn else R.string.shadow_your_turn),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                 )
             }
+        }
+    }
+}
+
+/** Speaking practice: off → answer the questions → repeat every sentence. */
+@Composable
+private fun PracticeButton(mode: Practice, onClick: () -> Unit) {
+    val label = when (mode) {
+        Practice.OFF -> R.string.practice_off
+        Practice.ANSWER -> R.string.practice_answer
+        Practice.SHADOW -> R.string.practice_shadow
+    }
+    TextButton(onClick = onClick) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                Icons.Default.RecordVoiceOver,
+                null,
+                tint = if (mode == Practice.OFF) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
+            )
+            Text(stringResource(label), style = MaterialTheme.typography.labelSmall)
         }
     }
 }
@@ -454,26 +495,35 @@ private fun AfterTrackButton(mode: AfterTrack, onClick: () -> Unit) {
 }
 
 @Composable
-private fun StepBar(step: StepUi, onComplete: () -> Unit) {
+private fun StepBar(step: StepUi, practice: Practice, onComplete: () -> Unit, onAnswerMode: () -> Unit) {
     Surface(color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    stringResource(R.string.step_progress, step.number, step.total, stringResource(step.kind.label())),
-                    style = MaterialTheme.typography.titleSmall,
-                )
-                Text(
-                    if (step.listens == 0) stringResource(R.string.not_listened_yet)
-                    else pluralStringResource(R.plurals.listened_times, step.listens, step.listens),
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-            when {
-                !step.done -> Button(onClick = onComplete) {
-                    Text(stringResource(if (step.hasNext) R.string.step_done_next else R.string.step_done_last))
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            // The guide: first time just listen, then pause after each question and answer.
+            if (step.kind == TrackKind.MINI_STORY && step.listens >= 1 && practice != Practice.ANSWER) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.answer_tip), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                    TextButton(onClick = onAnswerMode) { Text(stringResource(R.string.answer_tip_action)) }
                 }
-                step.hasNext -> OutlinedButton(onClick = onComplete) { Text(stringResource(R.string.step_next)) }
-                else -> Text(stringResource(R.string.today_all_done), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        stringResource(R.string.step_progress, step.number, step.total, stringResource(step.kind.label())) +
+                            if (step.optional) " · " + stringResource(R.string.step_optional) else "",
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Text(
+                        stringResource(R.string.listens_of_target, step.listens, step.target),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                when {
+                    !step.done -> Button(onClick = onComplete) {
+                        Text(stringResource(if (step.hasNext) R.string.step_done_next else R.string.step_done_last))
+                    }
+                    step.hasNext -> OutlinedButton(onClick = onComplete) { Text(stringResource(R.string.step_next)) }
+                    else -> Text(stringResource(R.string.today_all_done), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                }
             }
         }
     }
@@ -482,10 +532,10 @@ private fun StepBar(step: StepUi, onComplete: () -> Unit) {
 /** Tap words of the sentence to build the phrase, or type it. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun AddCardDialog(sentence: Sentence, onDismiss: () -> Unit, onSave: (String, String) -> Unit) {
+internal fun AddCardDialog(sentence: Sentence, onDismiss: () -> Unit, onSave: (String, String) -> Unit, initialFront: String = "") {
     val words = remember(sentence) { sentence.text.split(Regex("""\s+""")).filter { it.isNotBlank() } }
     val picked = remember(sentence) { mutableStateListOf<Int>() }
-    var front by remember { mutableStateOf("") }
+    var front by remember { mutableStateOf(initialFront) }
     var back by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,

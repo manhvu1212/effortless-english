@@ -18,6 +18,7 @@ import io.github.manhvu1212.effortless.data.db.TrackEntity
 import io.github.manhvu1212.effortless.data.db.TrackKind
 import io.github.manhvu1212.effortless.player.MediaTree
 import io.github.manhvu1212.effortless.player.PlaybackService
+import io.github.manhvu1212.effortless.player.Practice
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.guava.await
@@ -154,11 +155,11 @@ class CarMediaLibraryTest {
         browser.sendCustomCommand(SessionCommand("io.github.manhvu1212.effortless.SPEED", Bundle.EMPTY), Bundle.EMPTY).await()
         assertEquals(1.1f, c.player.state.value.speed, 0.001f)
         browser.sendCustomCommand(SessionCommand("io.github.manhvu1212.effortless.SHADOWING", Bundle.EMPTY), Bundle.EMPTY).await()
-        assertTrue(c.player.state.value.shadowing)
+        assertTrue(c.player.state.value.practice != Practice.OFF)
         waitFor { browser.mediaButtonPreferences.any { it.displayName == "Tốc độ 1.1x" } }
 
         // Leave the shared player as found.
-        browser.sendCustomCommand(SessionCommand("io.github.manhvu1212.effortless.SHADOWING", Bundle.EMPTY), Bundle.EMPTY).await()
+        c.player.setPractice(Practice.OFF)
         c.player.setSpeed(1f)
     }
 

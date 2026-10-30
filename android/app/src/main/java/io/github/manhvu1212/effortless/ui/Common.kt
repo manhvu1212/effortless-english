@@ -1,5 +1,8 @@
 package io.github.manhvu1212.effortless.ui
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
@@ -36,6 +39,26 @@ fun syncLabel(state: SyncState.Running): String = when (state.stage) {
     SyncStage.BUILDING -> stringResource(R.string.sync_building)
     SyncStage.SCANNING -> stringResource(R.string.sync_scanning)
 }
+
+/**
+ * Shows Google Translate's pop-up over the app (English → the phone's language) when the app is
+ * installed, otherwise translate.google.com. Nothing goes through this app.
+ */
+fun translate(context: Context, text: String) {
+    val popup = Intent(Intent.ACTION_PROCESS_TEXT)
+        .setType("text/plain")
+        .setPackage(GOOGLE_TRANSLATE)
+        .putExtra(Intent.EXTRA_PROCESS_TEXT, text)
+        .putExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, true)
+    val intent = if (popup.resolveActivity(context.packageManager) != null) {
+        popup
+    } else {
+        Intent(Intent.ACTION_VIEW, Uri.parse("https://translate.google.com/?sl=en&tl=vi&op=translate&text=" + Uri.encode(text)))
+    }
+    runCatching { context.startActivity(intent) }
+}
+
+private const val GOOGLE_TRANSLATE = "com.google.android.apps.translate"
 
 fun formatClock(ms: Long): String {
     val totalSeconds = (ms / 1000).coerceAtLeast(0)

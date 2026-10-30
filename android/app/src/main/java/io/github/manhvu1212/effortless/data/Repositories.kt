@@ -18,6 +18,7 @@ import io.github.manhvu1212.effortless.data.settings.SettingsRepository
 import io.github.manhvu1212.effortless.domain.Grade
 import io.github.manhvu1212.effortless.domain.Sm2
 import io.github.manhvu1212.effortless.domain.Sm2State
+import io.github.manhvu1212.effortless.domain.StudyPlan
 import io.github.manhvu1212.effortless.domain.today
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -69,8 +70,11 @@ class LibraryRepository(
     }
 }
 
-/** One step of today's plan: read the transcript (bit 0) or listen to a track through (bit position + 1). */
-data class StudyStep(val mask: Long, val track: TrackEntity?)
+/**
+ * One step of today's plan: read the transcript (bit 0) or listen to a track (bit position + 1),
+ * [target] times; an [optional] step is not needed for the day to count.
+ */
+data class StudyStep(val mask: Long, val track: TrackEntity?, val target: Int = 1, val optional: Boolean = false)
 
 class StudyRepository(
     private val db: AppDatabase,
@@ -78,8 +82,14 @@ class StudyRepository(
 ) {
     private val dao get() = db.study()
 
+    /** Reading first, then the tracks in the order of [StudyPlan]. */
     fun steps(tracks: List<TrackEntity>): List<StudyStep> =
-        listOf(StudyStep(READ_MASK, null)) + tracks.map { StudyStep(trackMask(it), it) }
+        listOf(StudyStep(READ_MASK, null)) + StudyPlan.order(tracks).map {
+            StudyStep(trackMask(it), it, StudyPlan.target(it.kind), StudyPlan.optional(it.kind))
+        }
+
+    private fun requiredMask(tracks: List<TrackEntity>): Long =
+        steps(tracks).filter { !it.optional }.fold(0L) { acc, step -> acc or step.mask }
 
     /** The pinned lesson while it is open, otherwise the first lesson not completed. */
     fun currentLesson(lessons: List<LessonEntity>, progress: List<LessonProgressEntity>, pinnedId: String?): LessonEntity? {
@@ -107,8 +117,8 @@ class StudyRepository(
     }
 
     /**
-     * Counts a listen to the end. It does not tick the step: the learner listens many times and
-     * moves on when ready.
+     * Counts a listen to the end. With auto-tick on, reaching the step's target ticks it; the
+     * player keeps repeating and the learner moves on when ready.
      */
     suspend fun addFullListen(track: TrackEntity) {
         val day = today()
@@ -116,15 +126,17 @@ class StudyRepository(
         dao.ensureLog(day, track.lessonId)
         dao.ensureListen(day, track.id)
         dao.incrementListen(day, track.id)
+        if (settings.current().autoTick && (dao.listenCount(day, track.id) ?: 0) >= StudyPlan.target(track.kind)) {
+            setStepDone(track.lessonId, trackMask(track), true)
+        }
     }
 
     fun listensToday(lessonId: String): Flow<Map<String, Int>> =
         dao.listens(today(), lessonId).map { rows -> rows.associate { it.trackId to it.count } }
 
-    /** A day counts towards the lesson once every step of it is done. */
+    /** A day counts towards the lesson once every required step of it is done. */
     private suspend fun countDayIfComplete(lessonId: String, day: Long) {
-        val tracks = db.library().tracksOnce(lessonId)
-        val all = steps(tracks).fold(0L) { acc, step -> acc or step.mask }
+        val all = requiredMask(db.library().tracksOnce(lessonId))
         val done = dao.logOnce(day, lessonId)?.steps ?: 0
         val progress = dao.progressOnce(lessonId) ?: return
         if (done and all == all && progress.lastCountedDay != day) {
@@ -153,14 +165,14 @@ class StudyRepository(
 
     /** Whether today's plan for the current lesson is finished, for the reminders. */
     suspend fun todayDone(lessonId: String): Boolean {
-        val all = steps(db.library().tracksOnce(lessonId)).fold(0L) { acc, step -> acc or step.mask }
+        val all = requiredMask(db.library().tracksOnce(lessonId))
         val done = dao.logOnce(today(), lessonId)?.steps ?: 0
         return done and all == all
     }
 
     suspend fun remainingStepsToday(lessonId: String): Int {
         val done = dao.logOnce(today(), lessonId)?.steps ?: 0
-        return steps(db.library().tracksOnce(lessonId)).count { it.mask and done == 0L }
+        return steps(db.library().tracksOnce(lessonId)).count { !it.optional && it.mask and done == 0L }
     }
 
     suspend fun studiedToday(): Boolean = dao.activityCount(today()) > 0

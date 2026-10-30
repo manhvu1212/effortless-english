@@ -1,6 +1,6 @@
 # Privacy Policy / Chính sách Bảo mật
 
-_Last updated / Cập nhật lần cuối: 2026-10-29_
+_Last updated / Cập nhật lần cuối: 2026-10-30_
 
 ## English
 
@@ -20,6 +20,10 @@ If you choose to connect Google Drive, the App asks for **read-only** access (`d
 Apart from searching your Drive for a folder with that name, the App does not read, list or download anything outside that folder. It never creates, changes or deletes files in your Drive, and never sends Drive data anywhere except to your own device. Access tokens are handled by Google Play services and are not stored by the App. You can revoke access at any time at https://myaccount.google.com/permissions.
 
 The App's use and transfer of information received from Google APIs adheres to the [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy), including the Limited Use requirements.
+
+### Translation
+
+When you tap "Dịch từ" or "Dịch câu" (translate) on the reading page, the App hands that word or sentence to the Google Translate app, or opens translate.google.com if the app is not installed. This only happens when you tap the button; Google's own privacy policy then applies. The App itself sends nothing anywhere.
 
 ### What data is stored on your device
 
@@ -58,6 +62,10 @@ Nếu bạn chọn kết nối Google Drive, Ứng dụng xin quyền **chỉ đ
 Ngoài việc tìm trong Drive một thư mục có tên đó, Ứng dụng không đọc, liệt kê hay tải bất cứ thứ gì ngoài thư mục đó. Ứng dụng không bao giờ tạo, sửa hay xóa file trong Drive, và không gửi dữ liệu Drive đi đâu ngoài máy của bạn. Token truy cập do Google Play services quản lý, Ứng dụng không lưu. Bạn có thể thu hồi quyền bất cứ lúc nào tại https://myaccount.google.com/permissions.
 
 Việc Ứng dụng sử dụng và chuyển giao thông tin nhận từ Google API tuân thủ [Chính sách dữ liệu người dùng của Google API Services](https://developers.google.com/terms/api-services-user-data-policy), bao gồm các yêu cầu Limited Use.
+
+### Dịch
+
+Khi bạn bấm "Dịch từ" hoặc "Dịch câu" trên trang Đọc, Ứng dụng chuyển từ hoặc câu đó sang ứng dụng Google Dịch, hoặc mở translate.google.com nếu máy chưa cài Google Dịch. Việc này chỉ xảy ra khi bạn bấm nút; khi đó chính sách bảo mật của Google được áp dụng. Bản thân Ứng dụng không gửi gì đi đâu.
 
 ### Dữ liệu lưu trên máy
 

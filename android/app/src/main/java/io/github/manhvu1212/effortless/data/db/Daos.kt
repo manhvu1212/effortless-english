@@ -153,6 +153,9 @@ interface StudyDao {
     @Query("UPDATE track_listen SET count = count + 1 WHERE day = :day AND trackId = :trackId")
     suspend fun incrementListen(day: Long, trackId: String)
 
+    @Query("SELECT count FROM track_listen WHERE day = :day AND trackId = :trackId")
+    suspend fun listenCount(day: Long, trackId: String): Int?
+
     /** Listens on [day] per track of the lesson. */
     @Query(
         "SELECT * FROM track_listen WHERE day = :day AND trackId IN (SELECT id FROM track WHERE lessonId = :lessonId)"

@@ -49,18 +49,18 @@ class PlaybackService : MediaLibraryService() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val c = container
-        c.player.state.value.let { currentButtons = buttons(it.speed, it.shadowing, Settings().rewindSeconds) }
+        c.player.state.value.let { currentButtons = buttons(it.speed, it.practice, Settings().rewindSeconds) }
         session = MediaLibrarySession.Builder(this, c.player.player, Callback(MediaTree(this, c)))
             .setSessionActivity(openApp)
             .setMediaButtonPreferences(currentButtons)
             .build()
 
-        // Car and notification buttons show the current speed and shadowing state.
+        // Car and notification buttons show the current speed and practice mode.
         scope.launch {
             combine(c.player.state, c.settings.settings) { state, settings ->
-                Triple(state.speed, state.shadowing, settings.rewindSeconds)
-            }.distinctUntilChanged().collect { (speed, shadowing, seconds) ->
-                currentButtons = buttons(speed, shadowing, seconds)
+                Triple(state.speed, state.practice, settings.rewindSeconds)
+            }.distinctUntilChanged().collect { (speed, practice, seconds) ->
+                currentButtons = buttons(speed, practice, seconds)
                 session?.setMediaButtonPreferences(currentButtons)
             }
         }
@@ -81,7 +81,7 @@ class PlaybackService : MediaLibraryService() {
         super.onDestroy()
     }
 
-    private fun buttons(speed: Float, shadowing: Boolean, rewindSeconds: Int): List<CommandButton> = listOf(
+    private fun buttons(speed: Float, practice: Practice, rewindSeconds: Int): List<CommandButton> = listOf(
         CommandButton.Builder(
             when (rewindSeconds) {
                 5 -> CommandButton.ICON_SKIP_BACK_5
@@ -112,8 +112,8 @@ class PlaybackService : MediaLibraryService() {
             .setSlots(CommandButton.SLOT_OVERFLOW)
             .build(),
         CommandButton.Builder(CommandButton.ICON_UNDEFINED)
-            .setCustomIconResId(if (shadowing) R.drawable.ic_shadowing_on else R.drawable.ic_shadowing_off)
-            .setDisplayName(getString(if (shadowing) R.string.car_shadowing_on else R.string.car_shadowing_off))
+            .setCustomIconResId(if (practice != Practice.OFF) R.drawable.ic_shadowing_on else R.drawable.ic_shadowing_off)
+            .setDisplayName(getString(practiceLabel(practice)))
             .setSessionCommand(SHADOWING)
             .setSlots(CommandButton.SLOT_OVERFLOW)
             .build(),
@@ -142,7 +142,7 @@ class PlaybackService : MediaLibraryService() {
                 REWIND.customAction -> player.rewind()
                 FORWARD.customAction -> player.forward()
                 SPEED.customAction -> player.cycleSpeed()
-                SHADOWING.customAction -> player.toggleShadowing()
+                SHADOWING.customAction -> player.cyclePractice()
                 else -> return Futures.immediateFuture(SessionResult(SessionResult.RESULT_ERROR_NOT_SUPPORTED))
             }
             return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
@@ -242,6 +242,13 @@ class PlaybackService : MediaLibraryService() {
     }
 
     companion object {
+        /** The button names the mode a tap switches to. */
+        private fun practiceLabel(current: Practice): Int = when (current) {
+            Practice.OFF -> R.string.car_practice_answer
+            Practice.ANSWER -> R.string.car_practice_shadow
+            Practice.SHADOW -> R.string.car_practice_off
+        }
+
         private val REWIND = SessionCommand("io.github.manhvu1212.effortless.REWIND", Bundle.EMPTY)
         private val FORWARD = SessionCommand("io.github.manhvu1212.effortless.FORWARD", Bundle.EMPTY)
         private val SPEED = SessionCommand("io.github.manhvu1212.effortless.SPEED", Bundle.EMPTY)

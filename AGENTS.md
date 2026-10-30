@@ -18,8 +18,10 @@ The app reads them at runtime either from the owner's Google Drive (the package 
 - `tools/prepare_content.py` — turns the course folders (Google Drive layout) into the app's content package: copies audio, converts PDFs to text, runs Whisper (cached, resumable), times PDF sentences against Whisper's words, writes `manifest.json`. Run it with a Python 3.12 venv holding `faster-whisper`, `pymupdf` and `av<18` (av 18+ breaks faster-whisper 1.2).
 
 ## Study flow
-- Today's steps: read the transcript (`ReadScreen`: text only, "Đã đọc xong" ticks it), then one step per track.
-- Nothing ticks a step automatically: the method is to listen many times. A listen to the end is counted per track and day (`track_listen`); the player's step bar shows the count and "Xong, bước tiếp →" ticks the step and starts the next track.
+- Follows the courses' "How To Use The Lessons" guides (`domain/StudyPlan.kt`): read the text, then vocabulary → mini-story → point of view → the main audio → commentary (optional); Learn Real English puts the conversation first. Targets: 3 listens for mini-story and main, 1 for commentary, 2 otherwise; daily goal 60 min by default (guides: at least an hour, two is best).
+- Reading (`ReadScreen`): text only. Tapping a word shows where the vocabulary lesson and mini-story explain it (playable excerpts, `data/content/Words.kt`), plus a hand-off to Google Translate's pop-up (no ML Kit: it would make the app collect diagnostics data).
+- A listen to the end is counted per track and day (`track_listen`); with auto-tick on (default) reaching the target ticks the step. The player's step bar shows "n/target" and "Xong, bước tiếp →" ticks the step and starts the next step's track. Playlists are in plan order.
+- Practice modes in the player: ANSWER pauses briefly after each question (the mini-story method: answer out loud, fast), SHADOW after every sentence.
 - When a track ends the player repeats it by default (`AfterTrack.REPEAT`); the user can switch to stop-at-end or go-to-next, remembered in settings.
 
 ## Android Auto
