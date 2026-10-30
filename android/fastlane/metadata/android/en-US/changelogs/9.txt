@@ -1,0 +1,2 @@
+• New logo: the speaking E, also in notifications and on Android Auto
+• Themed (monochrome) icon on Android 13 and later

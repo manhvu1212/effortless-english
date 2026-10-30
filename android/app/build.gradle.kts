@@ -22,8 +22,8 @@ android {
         applicationId = "io.github.manhvu1212.effortless"
         minSdk = 26
         targetSdk = 36
-        versionCode = 8
-        versionName = "1.0.6"
+        versionCode = 9
+        versionName = "1.0.7"
         vectorDrawables { useSupportLibrary = true }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

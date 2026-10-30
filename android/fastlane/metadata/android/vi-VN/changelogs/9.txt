@@ -1,0 +1,2 @@
+• Logo mới: chữ E phát âm, hiển thị cả trong thông báo và trên Android Auto
+• Hỗ trợ biểu tượng đơn sắc theo màu hình nền (Android 13 trở lên)

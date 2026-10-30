@@ -20,23 +20,41 @@ $deep  = [System.Drawing.Color]::FromArgb(0x1D, 0x4F, 0xB0)
 $white = [System.Drawing.Color]::FromArgb(0xFF, 0xFF, 0xFF)
 $soft  = [System.Drawing.Color]::FromArgb(0xD8, 0xE4, 0xFA)
 
-# The "E" of drawable/ic_launcher_foreground.xml, in its 108-unit viewport:
-# M40,34 h28 v6 h-21 v11 h18 v6 h-18 v11 h21 v6 h-28 z
+$wave  = [System.Drawing.Color]::FromArgb(0x9F, 0xC2, 0xFF)
+$light = [System.Drawing.Color]::FromArgb(0x3B, 0x7D, 0xEB)
+
+# The mark of drawable/ic_launcher_foreground.xml, in its 108-unit viewport: the "E"
+# (M64,35 H40 V73 H64 M40,54 H56, stroke 7.5, round) and two sound waves centred on
+# (57,54), radius 9 and 17, about +-45 degrees, stroke 5.
 function Draw-Glyph {
     param([System.Drawing.Graphics]$g, [single]$ox, [single]$oy, [single]$s)
     $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
     $u = $s / 108.0
-    $b = New-Object System.Drawing.SolidBrush $white
-    foreach ($r in @(@(40, 34, 28, 6), @(40, 34, 7, 40), @(47, 51, 18, 6), @(40, 68, 28, 6))) {
-        $g.FillRectangle($b, [single]($ox + $r[0] * $u), [single]($oy + $r[1] * $u), [single]($r[2] * $u), [single]($r[3] * $u))
+    function P([single]$x, [single]$y) { New-Object System.Drawing.PointF ([single]($ox + $x * $u)), ([single]($oy + $y * $u)) }
+
+    $pen = New-Object System.Drawing.Pen $white, ([single](7.5 * $u))
+    $pen.StartCap = $pen.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
+    $pen.LineJoin = [System.Drawing.Drawing2D.LineJoin]::Round
+    $g.DrawLines($pen, [System.Drawing.PointF[]]@((P 64 35), (P 40 35), (P 40 73), (P 64 73)))
+    $g.DrawLine($pen, (P 40 54), (P 56 54))
+    $pen.Dispose()
+
+    $pen = New-Object System.Drawing.Pen $wave, ([single](5 * $u))
+    $pen.StartCap = $pen.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
+    foreach ($a in @(@(9, 46), @(17, 45))) {
+        $r = $a[0]
+        $g.DrawArc($pen, [single]($ox + (57 - $r) * $u), [single]($oy + (54 - $r) * $u), [single](2 * $r * $u), [single](2 * $r * $u), [single](-$a[1]), [single](2 * $a[1]))
     }
-    $b.Dispose()
+    $pen.Dispose()
 }
 
 # --- App icon (512x512, full bleed: Play applies its own mask) ---
 $bmp = New-Object System.Drawing.Bitmap 512, 512
 $g = [System.Drawing.Graphics]::FromImage($bmp)
-$g.Clear($brand)
+$rect = New-Object System.Drawing.Rectangle 0, 0, 512, 512
+$gradient = New-Object System.Drawing.Drawing2D.LinearGradientBrush $rect, $light, $deep, 45.0
+$g.FillRectangle($gradient, $rect)
+$gradient.Dispose()
 Draw-Glyph -g $g -ox 0 -oy 0 -s 512
 $g.Dispose()
 $bmp.Save($icon, [System.Drawing.Imaging.ImageFormat]::Png)
@@ -49,16 +67,9 @@ $g = [System.Drawing.Graphics]::FromImage($bmp)
 $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
 $g.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::AntiAliasGridFit
 $rect = New-Object System.Drawing.Rectangle 0, 0, 1024, 500
-$gradient = New-Object System.Drawing.Drawing2D.LinearGradientBrush $rect, $brand, $deep, 20.0
+$gradient = New-Object System.Drawing.Drawing2D.LinearGradientBrush $rect, $light, $deep, 20.0
 $g.FillRectangle($gradient, $rect)
 $gradient.Dispose()
-
-# Sound-wave arcs behind the glyph: listening is what the app is about.
-$wave = New-Object System.Drawing.Pen ([System.Drawing.Color]::FromArgb(40, 255, 255, 255)), 10
-foreach ($r in 150, 210, 270) {
-    $g.DrawArc($wave, [single](250 - $r), [single](250 - $r), [single](2 * $r), [single](2 * $r), -50, 100)
-}
-$wave.Dispose()
 
 Draw-Glyph -g $g -ox 30 -oy 60 -s 380
 

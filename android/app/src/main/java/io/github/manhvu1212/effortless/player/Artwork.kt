@@ -21,10 +21,11 @@ object Artwork {
     private fun render(context: Context): ByteArray {
         val bitmap = Bitmap.createBitmap(SIZE, SIZE, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
-        canvas.drawColor(ContextCompat.getColor(context, R.color.ic_launcher_background))
-        ContextCompat.getDrawable(context, R.drawable.ic_launcher_foreground)?.apply {
-            setBounds(0, 0, SIZE, SIZE)
-            draw(canvas)
+        for (layer in listOf(R.drawable.ic_launcher_background, R.drawable.ic_launcher_foreground)) {
+            ContextCompat.getDrawable(context, layer)?.apply {
+                setBounds(0, 0, SIZE, SIZE)
+                draw(canvas)
+            }
         }
         return ByteArrayOutputStream().use { out ->
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
