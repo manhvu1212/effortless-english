@@ -52,7 +52,7 @@
             </intent-filter>
         </service>
 
-        <!-- WorkManager's foreground service, used by DownloadWorker. -->
+        <!-- WorkManager's foreground service, used by DownloadWorker and SyncWorker. -->
         <service
             android:name="androidx.work.impl.foreground.SystemForegroundService"
             android:foregroundServiceType="dataSync"

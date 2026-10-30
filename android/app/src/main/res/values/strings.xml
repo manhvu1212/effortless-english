@@ -204,6 +204,8 @@
     <string name="wifi_only">Chỉ tải khi có Wi-Fi</string>
     <string name="ahead_lessons">Tự tải trước bao nhiêu bài sau bài hiện tại</string>
     <string name="channel_downloads">Tải bài học</string>
+    <string name="channel_sync">Đồng bộ thư viện</string>
+    <string name="syncing_library">Đang đồng bộ thư viện…</string>
     <string name="downloading_audio">Đang tải file nghe…</string>
     <string name="download_progress">%1$s / %2$s</string>
     <string name="download_lesson">Tải bài này</string>

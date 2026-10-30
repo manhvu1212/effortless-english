@@ -23,10 +23,12 @@ typealias SyncProgress = (stage: SyncStage, done: Int, total: Int) -> Unit
 
 /**
  * Library refreshes (Drive sync, folder scan) run here, in the application's scope, so they keep
- * going when the user leaves Settings; every screen can show [state].
+ * going when the user leaves Settings; every screen can show [state]. [keepAlive] starts
+ * [SyncWorker], which keeps the app in the foreground until the refresh ends.
  */
 class LibrarySync(
     private val scope: CoroutineScope,
+    private val keepAlive: () -> Unit,
     private val library: LibraryRepository,
     private val drive: DriveRepository,
 ) {
@@ -70,6 +72,7 @@ class LibrarySync(
                 onFailure = { SyncState.Failed(it) },
             )
         }
+        keepAlive()
         return true
     }
 }
