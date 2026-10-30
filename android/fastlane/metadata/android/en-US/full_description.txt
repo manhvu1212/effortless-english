@@ -1,23 +1,30 @@
-A study companion for learning to understand and speak English by "deep listening": the same lesson for many days, answering mini-story questions out loud, shadowing sentence by sentence.
+A study companion for learning to understand and speak English by "deep listening": one lesson for many days, listening again and again, answering mini-story questions out loud.
 
 A DAY-BY-DAY PLAN
-• Each lesson runs for N days (7 by default): read the transcript → main story → vocabulary → mini-story → point of view.
-• Tick off each step; move on only when you understand nearly everything.
-• Study streak, minutes listened per day, 14-day stats.
+• Steps follow the course guide: read → vocabulary → mini-story → point of view → main audio → commentary (optional).
+• Each step has a listen target; reach it and the step ticks itself.
+• Each lesson runs for N days (7 by default), a daily minutes goal, study streak and 14-day stats.
+
+READ TO UNDERSTAND
+• A text-only reading page to read at ease before listening.
+• Tap a word to hear where the teacher explains it in the vocabulary lesson and mini-story, or open Google Translate.
+• A Vietnamese meaning for each paragraph (when your material has one), hidden until you need it.
 
 A PLAYER BUILT FOR LEARNERS
 • Karaoke transcript: the playing sentence is highlighted and followed; tap a sentence to hear it again.
+• Answer mode: pauses after each mini-story question so you can answer out loud.
 • Shadowing: pauses after every sentence so you can repeat it.
-• A–B loop, sentence loop, skip back/forward, speed 0.5–1.5x.
+• Repeats the track when it ends (or stops, or goes on); A–B loop, skip back/forward, speed 0.5–1.5x.
 • Background playback with lock-screen and headset controls.
 • Android Auto: study in the car with skip, speed and voice commands.
 
 VOCABULARY & REVIEW
-• Long-press a sentence, pick a word or phrase and save it as a card with the example sentence and its original audio.
+• Long-press a sentence to save a word or phrase as a card with the example sentence and its original audio.
 • Spaced-repetition review (SM-2): Again / Hard / Good / Easy.
 
-STUDY REMINDERS
+REMINDERS & LOOK
 • Reminders at the times you choose, plus an evening nudge if you have not studied yet.
+• Light, dark or system theme.
 
 YOUR OWN MATERIAL
 The app ships no course content. Use your own study material: connect Google Drive (read-only, a single folder you name) or pick a folder on the device. The app has no server and collects no data.
