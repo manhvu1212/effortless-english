@@ -1,12 +1,17 @@
 package io.github.manhvu1212.effortless.ui.screens
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,6 +29,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -36,6 +42,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
@@ -173,10 +180,11 @@ fun TodayScreen(
         modifier = Modifier.padding(top = contentPadding.calculateTopPadding()),
     ) {
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                StatChip(Icons.Default.LocalFireDepartment, pluralStringResource(R.plurals.streak_days, ui.streak, ui.streak), Modifier.weight(1f), stringResource(R.string.stat_streak))
-                StatChip(Icons.Default.Timer, stringResource(R.string.minutes_goal, minutesOf(ui.listenedTodayMs), ui.dailyGoalMinutes), Modifier.weight(1f), stringResource(R.string.listened_today))
-                StatChip(Icons.Default.Style, pluralStringResource(R.plurals.cards_due, ui.dueCards, ui.dueCards), Modifier.weight(1f), stringResource(R.string.cards_due_label), onClick = onOpenReview)
+            // Same height for all three, whatever their text.
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+                StatChip(Icons.Default.LocalFireDepartment, pluralStringResource(R.plurals.streak_days, ui.streak, ui.streak), Modifier.weight(1f).fillMaxHeight(), stringResource(R.string.stat_streak))
+                StatChip(Icons.Default.Timer, stringResource(R.string.minutes_goal, minutesOf(ui.listenedTodayMs), ui.dailyGoalMinutes), Modifier.weight(1f).fillMaxHeight(), stringResource(R.string.listened_today))
+                StatChip(Icons.Default.Style, pluralStringResource(R.plurals.cards_due, ui.dueCards, ui.dueCards), Modifier.weight(1f).fillMaxHeight(), stringResource(R.string.cards_due_label), onClick = onOpenReview)
             }
         }
         if (!ui.loaded) return@LazyColumn
@@ -251,9 +259,16 @@ fun StatChip(icon: ImageVector, text: String, modifier: Modifier = Modifier, des
         modifier = modifier.then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
     ) {
-        Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxHeight().padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, contentDescription = description, modifier = Modifier.padding(end = 6.dp))
-            Text(text, style = MaterialTheme.typography.labelLarge)
+            // One line: "120/120 phút" shrinks a little rather than wrapping.
+            val style = MaterialTheme.typography.labelLarge
+            BasicText(
+                text,
+                style = style.copy(color = LocalContentColor.current),
+                maxLines = 1,
+                autoSize = TextAutoSize.StepBased(minFontSize = 9.sp, maxFontSize = style.fontSize),
+            )
         }
     }
 }
