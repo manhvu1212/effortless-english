@@ -1,0 +1,1 @@
+• Thông báo cố định trên thanh thông báo: số phút đã nghe hôm nay, bước học tiếp theo và số thẻ cần ôn, luôn hiện để nhắc bạn học (tắt được trong Cài đặt)
