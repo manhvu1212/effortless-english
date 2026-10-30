@@ -3,6 +3,7 @@ package io.github.manhvu1212.effortless.reminders
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
@@ -10,6 +11,7 @@ import androidx.core.app.NotificationManagerCompat
 import io.github.manhvu1212.effortless.AppContainer
 import io.github.manhvu1212.effortless.MainActivity
 import io.github.manhvu1212.effortless.R
+import io.github.manhvu1212.effortless.container
 import io.github.manhvu1212.effortless.domain.today
 import io.github.manhvu1212.effortless.ui.label
 import kotlinx.coroutines.delay
@@ -20,7 +22,8 @@ import kotlinx.coroutines.launch
 /**
  * The ongoing "today" notification, a constant nudge to study: listening minutes against the daily
  * goal, the next step of the current lesson, and the cards due. It follows the database and the
- * settings while the app runs; after midnight and on boot the reminder alarms refresh it.
+ * settings while the app runs; after midnight and on boot the reminder alarms refresh it. Android 14+
+ * lets the user swipe even an ongoing notification away; [StatusReceiver] puts it straight back.
  */
 object StudyStatus {
     // Default importance so its icon stays in the status bar (silent ones are hidden there); no
@@ -90,6 +93,9 @@ object StudyStatus {
             .setContentText(text)
             .setProgress(goal, minutes.coerceAtMost(goal), false)
             .setContentIntent(open)
+            .setDeleteIntent(
+                PendingIntent.getBroadcast(context, ID, Intent(context, StatusReceiver::class.java), PendingIntent.FLAG_IMMUTABLE)
+            )
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setSilent(true)
@@ -99,5 +105,21 @@ object StudyStatus {
             .build()
         @Suppress("MissingPermission")
         manager.notify(ID, notification)
+    }
+}
+
+/** Shows the status notification again when it is swiped away (it stays off when turned off in Settings). */
+class StatusReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        val pending = goAsync()
+        val container = context.container
+        container.scope.launch {
+            try {
+                delay(500)
+                StudyStatus.refresh(context, container)
+            } finally {
+                pending.finish()
+            }
+        }
     }
 }
