@@ -14,6 +14,7 @@ Whisper results are cached in OUT/.whisper, so an interrupted run resumes where 
 from __future__ import annotations
 
 import argparse
+import collections
 import difflib
 import fnmatch
 import hashlib
@@ -162,6 +163,50 @@ def pdf_paragraphs(pdf: Path) -> list[str]:
                     continue
                 paragraphs.append(text)
     return paragraphs
+
+
+SPLIT_WORD = re.compile(r"\b([A-Za-z]+)- ([a-z]+)\b")
+COMPOUND_PREFIXES = {
+    "ex", "self", "well", "non", "all", "half", "long", "short", "high", "low", "full", "part", "cross", "one",
+    "two", "three", "four", "five", "six", "ten", "so", "ill", "first", "second", "third", "old", "new", "anti",
+    "pre", "post", "mid", "semi", "multi", "great",
+}
+# Splits in the course PDFs that the rules below get wrong, read by hand.
+SPLIT_OVERRIDES = {
+    "defeat- ing": "defeating", "dis- honesty": "dishonesty", "inter- views": "interviews",
+    "mini- lesson": "mini-lesson", "mini- story": "mini-story", "people- pleaser": "people-pleaser",
+    "wood- working": "woodworking", "work- sheets": "worksheets", "in- class": "in-class",
+    "Bookstore- owned": "Bookstore-owned", "life- we": "life- we", "jus- or": "jus- or",
+    "researchers- accomplished": "researchers- accomplished",
+}
+
+
+def join_split_words(paragraphs: list[str], known: collections.Counter) -> list[str]:
+    """Words a PDF split at a line end ("simi- lar") made whole again.
+
+    Joined when the whole word is in [known] (Whisper spells words whole), kept as a compound
+    ("ex-wife") when the compound is known or starts with a usual prefix, left alone when both
+    parts are common words (a dash: "words- make"), joined otherwise.
+    """
+    def repl(m: re.Match) -> str:
+        first, second = m.group(1), m.group(2)
+        if m.group(0) in SPLIT_OVERRIDES:
+            return SPLIT_OVERRIDES[m.group(0)]
+        if known[(first + second).lower()]:
+            return first + second
+        if known[f"{first}-{second}".lower()] or first.lower() in COMPOUND_PREFIXES:
+            return f"{first}-{second}"
+        if known[first.lower()] > 2 and known[second.lower()] > 2:
+            return m.group(0)
+        return first + second
+    return [SPLIT_WORD.sub(repl, p) for p in paragraphs]
+
+
+def known_words(*texts: str) -> collections.Counter:
+    seen: collections.Counter = collections.Counter()
+    for text in texts:
+        seen.update(re.findall(r"[a-z]+(?:-[a-z]+)*", text.lower()))
+    return seen
 
 
 def is_boilerplate(text: str) -> bool:
@@ -410,12 +455,14 @@ def main() -> int:
             paragraphs = pdf_paragraphs(track.pdf) if track.pdf else []
             if args.no_whisper:
                 if paragraphs:
+                    paragraphs = join_split_words(paragraphs, known_words(*paragraphs))
                     sentences = [{"t": s, "p": i == 0} for p in paragraphs for i, s in enumerate(split_sentences(p))]
                     write_text(out_dir / f"{base}.txt", sentences)
                     item["transcript"] = f"{rel_dir}/{base}.txt"
                 continue
             words = transcriber.words(track.audio, f"{lesson.rel}/{track.audio.name}")
             if paragraphs:
+                paragraphs = join_split_words(paragraphs, known_words(" ".join(w["w"] for w in words), *paragraphs))
                 sentences, coverage = align(paragraphs, words)
                 print(f"      aligned {len(sentences)} PDF sentences, {coverage:.0%} of words matched", flush=True)
                 if coverage < 0.5:
