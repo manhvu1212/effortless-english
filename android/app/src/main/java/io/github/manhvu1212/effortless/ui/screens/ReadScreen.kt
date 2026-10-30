@@ -65,6 +65,7 @@ import io.github.manhvu1212.effortless.data.content.Sentence
 import io.github.manhvu1212.effortless.data.content.Transcript
 import io.github.manhvu1212.effortless.data.content.Words
 import io.github.manhvu1212.effortless.data.db.TrackKind
+import io.github.manhvu1212.effortless.domain.StudyPlan
 import io.github.manhvu1212.effortless.container
 import io.github.manhvu1212.effortless.player.ClipPlayer
 import io.github.manhvu1212.effortless.ui.translate
@@ -122,7 +123,10 @@ class ReadViewModel(private val c: AppContainer, private val lessonId: String) :
     init {
         viewModelScope.launch {
             val lesson = c.db.library().lessonOnce(lessonId)
-            val tracks = c.db.library().tracksOnce(lessonId).filter { it.transcriptUri != null || it.timingUri != null }
+            // The main text first (it is what the reading step asks for), then the plan's order.
+            val tracks = StudyPlan.order(c.db.library().tracksOnce(lessonId))
+                .filter { it.transcriptUri != null || it.timingUri != null }
+                .sortedBy { it.kind != TrackKind.MAIN }
             _ui.value = ReadUi(lesson = lesson, tracks = tracks, next = c.study.nextTrack(lessonId))
             tracks.firstOrNull()?.let { select(it) } ?: _ui.update { it.copy(loading = false) }
         }
