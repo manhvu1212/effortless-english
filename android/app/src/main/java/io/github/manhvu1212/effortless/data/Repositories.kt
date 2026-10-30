@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.DocumentsContract
+import io.github.manhvu1212.effortless.data.content.Glossary
+import io.github.manhvu1212.effortless.data.content.GlossaryEntry
 import io.github.manhvu1212.effortless.data.content.LibraryScanner
 import io.github.manhvu1212.effortless.data.content.Transcript
 import io.github.manhvu1212.effortless.data.content.TreeNode
@@ -70,6 +72,14 @@ class LibraryRepository(
             ?: track.transcriptUri?.replace(".txt", ".vi.json")
             ?: return@withContext null
         readText(uri)?.let { Transcript.translation(it, transcript.paragraphs.size) }
+    }
+
+    /** The `<audio>.glossary.json` of a vocabulary track, if the content package has one. */
+    suspend fun loadGlossary(track: TrackEntity): List<GlossaryEntry>? = withContext(Dispatchers.IO) {
+        val uri = track.timingUri?.replace(".timing.json", ".glossary.json")
+            ?: track.transcriptUri?.replace(".txt", ".glossary.json")
+            ?: return@withContext null
+        readText(uri)?.let(Glossary::parse)
     }
 
     suspend fun loadTranscript(track: TrackEntity): Transcript? = withContext(Dispatchers.IO) {

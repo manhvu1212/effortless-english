@@ -59,6 +59,8 @@ import androidx.lifecycle.viewModelScope
 import io.github.manhvu1212.effortless.AppContainer
 import io.github.manhvu1212.effortless.R
 import io.github.manhvu1212.effortless.data.StudyRepository
+import io.github.manhvu1212.effortless.data.content.Glossary
+import io.github.manhvu1212.effortless.data.content.GlossaryEntry
 import io.github.manhvu1212.effortless.data.content.Sentence
 import io.github.manhvu1212.effortless.data.content.Transcript
 import io.github.manhvu1212.effortless.data.content.Words
@@ -78,8 +80,19 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** A sentence of a vocabulary or mini-story lesson that uses the looked-up word. */
-data class Explanation(val track: TrackEntity, val text: String, val startMs: Long?, val endMs: Long?)
+/**
+ * Where a lesson explains the looked-up word: a glossary entry ([term] and its Vietnamese
+ * [meaning], [text] = the teacher's explanation in short) or, without a glossary, a sentence of
+ * the vocabulary or mini-story lesson that uses the word.
+ */
+data class Explanation(
+    val track: TrackEntity,
+    val text: String,
+    val startMs: Long?,
+    val endMs: Long?,
+    val term: String? = null,
+    val meaning: String? = null,
+)
 
 data class LookupUi(val word: String, val sentence: Sentence, val explanations: List<Explanation>? = null)
 
@@ -102,6 +115,7 @@ class ReadViewModel(private val c: AppContainer, private val lessonId: String) :
     val lookup: StateFlow<LookupUi?> = _lookup.asStateFlow()
 
     private val transcripts = mutableMapOf<String, Transcript?>()
+    private val glossaries = mutableMapOf<String, List<GlossaryEntry>?>()
 
     init {
         viewModelScope.launch {
@@ -124,13 +138,23 @@ class ReadViewModel(private val c: AppContainer, private val lessonId: String) :
     }
 
     /**
-     * Where the teacher explains [word]: sentences of the vocabulary lesson first, then the
-     * mini-story, each with the sentence after it for context.
+     * Where the teacher explains [word]: the lesson glossary when the content has one; otherwise
+     * sentences of the vocabulary lesson, then the mini-story, that use it.
      */
     fun lookUp(word: String, sentence: Sentence) {
         _lookup.value = LookupUi(word, sentence)
         viewModelScope.launch {
             val tracks = c.db.library().tracksOnce(lessonId)
+            val withGlossary = tracks.filter { it.kind == TrackKind.VOCABULARY }.mapNotNull { track ->
+                glossaries.getOrPut(track.id) { c.library.loadGlossary(track) }?.let { track to it }
+            }
+            if (withGlossary.isNotEmpty()) {
+                val found = withGlossary.flatMap { (track, entries) ->
+                    Glossary.find(word, entries).map { Explanation(track, it.explain, it.startMs, it.endMs, it.term, it.vi) }
+                }
+                if (_lookup.value?.word == word) _lookup.value = LookupUi(word, sentence, found)
+                return@launch
+            }
             val sources = tracks.filter { it.kind == TrackKind.VOCABULARY } + tracks.filter { it.kind == TrackKind.MINI_STORY }
             val found = mutableListOf<Explanation>()
             for (track in sources) {
@@ -332,7 +356,15 @@ private fun LookupSheet(
                 else -> explanations.forEach { e ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text(stringResource(e.track.kind.label()), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                            if (e.term != null) {
+                                Text(
+                                    if (e.meaning.isNullOrBlank()) e.term else "${e.term} · ${e.meaning}",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                            } else {
+                                Text(stringResource(e.track.kind.label()), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                            }
                             Text(e.text, style = MaterialTheme.typography.bodyMedium)
                         }
                         if (e.startMs != null) {

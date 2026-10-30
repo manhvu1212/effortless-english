@@ -104,7 +104,7 @@
     <string name="translate_sentence">Dịch câu</string>
     <string name="save_card">Lưu thẻ</string>
     <string name="teacher_explains">Thầy giải thích</string>
-    <string name="teacher_not_found">Bài Từ vựng và Mini-Story không nhắc tới từ này. Thử đoán nghĩa từ câu, hoặc bấm Dịch.</string>
+    <string name="teacher_not_found">Thầy không giải thích riêng từ này. Thử đoán nghĩa từ câu, hoặc bấm Dịch.</string>
     <string name="read_done">Đã đọc xong → Nghe bài chính</string>
     <string name="shadowing">Shadowing: dừng sau mỗi câu để bạn nhại lại</string>
     <string name="shadow_your_turn">Đến lượt bạn: nhại lại câu vừa nghe</string>
