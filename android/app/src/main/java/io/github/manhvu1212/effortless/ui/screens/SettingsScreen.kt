@@ -7,7 +7,10 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -25,7 +28,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.InputChip
+import androidx.compose.material3.InputChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -244,20 +250,31 @@ fun SettingsScreen(contentPadding: PaddingValues) {
         }
         item {
             Section(stringResource(R.string.settings_reminders)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                // Wraps instead of squeezing the chips on narrow screens.
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     settings.reminderTimes.forEach { minute ->
                         InputChip(
                             selected = false,
                             onClick = { pickTimeFor = TimeTarget.Replace(minute) },
-                            label = { Text(formatMinuteOfDay(minute)) },
+                            label = { Text(formatMinuteOfDay(minute), maxLines = 1, softWrap = false) },
                             trailingIcon = {
-                                IconButton(onClick = {
-                                    vm.update(rescheduleReminders = true) { s -> s.copy(reminderTimes = s.reminderTimes - minute) }
-                                }) { Icon(Icons.Default.Close, stringResource(R.string.delete)) }
+                                Icon(
+                                    Icons.Default.Close,
+                                    stringResource(R.string.delete),
+                                    modifier = Modifier
+                                        .size(InputChipDefaults.IconSize)
+                                        .clickable {
+                                            vm.update(rescheduleReminders = true) { s -> s.copy(reminderTimes = s.reminderTimes - minute) }
+                                        },
+                                )
                             },
                         )
                     }
-                    IconButton(onClick = { pickTimeFor = TimeTarget.Add }) { Icon(Icons.Default.Add, stringResource(R.string.add_reminder)) }
+                    AssistChip(
+                        onClick = { pickTimeFor = TimeTarget.Add },
+                        label = { Text(stringResource(R.string.add_reminder_short), maxLines = 1, softWrap = false) },
+                        leadingIcon = { Icon(Icons.Default.Add, null, Modifier.size(AssistChipDefaults.IconSize)) },
+                    )
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
@@ -345,9 +362,13 @@ private fun Section(title: String, content: @Composable () -> Unit) {
 
 @Composable
 private fun <T> ChoiceRow(options: List<T>, selected: T, label: (T) -> String, onSelect: (T) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         options.forEach { option ->
-            FilterChip(selected = option == selected, onClick = { onSelect(option) }, label = { Text(label(option)) })
+            FilterChip(
+                selected = option == selected,
+                onClick = { onSelect(option) },
+                label = { Text(label(option), maxLines = 1, softWrap = false) },
+            )
         }
     }
 }

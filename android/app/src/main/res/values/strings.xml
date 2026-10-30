@@ -139,6 +139,7 @@
     <string name="days_per_lesson">Số ngày học mỗi bài</string>
     <string name="settings_reminders">Nhắc lịch học</string>
     <string name="add_reminder">Thêm giờ nhắc</string>
+    <string name="add_reminder_short">Thêm giờ</string>
     <string name="nag_setting">Nhắc lại buổi tối nếu hôm đó chưa học</string>
     <string name="settings_player">Trình phát</string>
     <string name="rewind_seconds">Tua lùi / tới mỗi lần</string>
