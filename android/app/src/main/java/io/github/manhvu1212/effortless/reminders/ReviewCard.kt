@@ -59,6 +59,8 @@ object ReviewCard {
     private const val KEY_REVEALED = "revealed"
     private const val KEY_CHANGED = "changed"
     private const val WORK = "review-card"
+    /** About what one row of a collapsed notification holds on a phone. */
+    private const val LINE = 40
     private val json = Json { ignoreUnknownKeys = true }
 
     fun createChannel(context: Context) {
@@ -161,11 +163,22 @@ object ReviewCard {
             if (item.example.isNotBlank()) add("“${item.example}”")
             add("$kindLabel · ${item.source}")
         }
+        // Collapsed (as the lock screen shows it) a notification has two one-line rows. A sentence
+        // runs over both instead of being cut after a few words; expanded it is shown whole.
+        val sentence = item.kind == ReviewItem.Kind.SENTENCE
+        val (line1, line2) = if (sentence && item.front.length > LINE) splitInTwo(item.front) else title to body.first()
+        val style = NotificationCompat.BigTextStyle()
+        if (sentence) {
+            style.setBigContentTitle("$kindLabel · ${item.source}")
+            style.bigText(listOfNotNull(item.front, item.meaning.takeIf { revealed && it.isNotBlank() }).joinToString("\n\n"))
+        } else {
+            style.bigText(body.joinToString("\n"))
+        }
         val notification = NotificationCompat.Builder(context, CHANNEL)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(title)
-            .setContentText(body.first())
-            .setStyle(NotificationCompat.BigTextStyle().bigText(body.joinToString("\n")))
+            .setContentTitle(line1)
+            .setContentText(line2)
+            .setStyle(style)
             .setContentIntent(
                 PendingIntent.getActivity(context, ID, Intent(context, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
             )
@@ -184,6 +197,13 @@ object ReviewCard {
             .build()
         @Suppress("MissingPermission")
         manager.notify(ID, notification)
+    }
+
+    /** Splits at the space that makes the longer half shortest. */
+    private fun splitInTwo(text: String): Pair<String, String> {
+        val spaces = text.indices.filter { text[it] == ' ' }
+        val at = spaces.minByOrNull { maxOf(it, text.length - it - 1) } ?: return text to ""
+        return text.substring(0, at) to text.substring(at + 1)
     }
 
     private fun action(context: Context, action: String): PendingIntent = PendingIntent.getBroadcast(
@@ -230,8 +250,10 @@ object ReviewCard {
             val lesson = c.db.library().lessonOnce(lessonId) ?: continue
             val track = c.db.library().tracksOnce(lessonId).firstOrNull { it.kind == TrackKind.MAIN } ?: continue
             val transcript = c.library.loadTranscript(track) ?: continue
-            // A whole sentence, not a heading or a one-word reply.
-            val sentence = transcript.sentences.filter { it.text.split(' ').size in 6..40 }.randomOrNull() ?: continue
+            // A whole sentence, not a heading or a one-word reply; preferably one that fits the two
+            // rows of the collapsed card.
+            val whole = transcript.sentences.filter { it.text.split(' ').size in 6..40 }
+            val sentence = (whole.filter { it.text.length <= 2 * LINE }.ifEmpty { whole }).randomOrNull() ?: continue
             val paragraph = transcript.paragraphs.indexOfFirst { sentence in it }
             val meaning = c.library.loadTranslation(track, transcript)?.getOrNull(paragraph).orEmpty()
             return ReviewItem(ReviewItem.Kind.SENTENCE, sentence.text, meaning, source = lesson.title)
