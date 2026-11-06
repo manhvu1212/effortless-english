@@ -306,6 +306,21 @@ fun SettingsScreen(contentPadding: PaddingValues) {
                     }
                     Switch(settings.statusNotification, { on -> vm.update { it.copy(statusNotification = on) } })
                 }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(stringResource(R.string.status_lock_screen), style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            stringResource(R.string.status_lock_screen_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(
+                        settings.statusOnLockScreen,
+                        { on -> vm.update { it.copy(statusOnLockScreen = on) } },
+                        enabled = settings.statusNotification,
+                    )
+                }
             }
         }
         item {

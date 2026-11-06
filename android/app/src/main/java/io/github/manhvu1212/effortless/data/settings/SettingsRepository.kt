@@ -52,6 +52,8 @@ data class Settings(
     val dynamicColor: Boolean = false,
     /** An ongoing notification with today's progress and next step. */
     val statusNotification: Boolean = true,
+    /** Off: hidden on a secure lock screen (PIN, pattern, password, fingerprint). */
+    val statusOnLockScreen: Boolean = false,
 )
 
 private val Context.dataStore by preferencesDataStore(name = "settings")
@@ -94,6 +96,7 @@ class SettingsRepository(context: Context) {
             themeMode = this[THEME_MODE]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: defaults.themeMode,
             dynamicColor = this[DYNAMIC_COLOR] ?: defaults.dynamicColor,
             statusNotification = this[STATUS_NOTIFICATION] ?: defaults.statusNotification,
+            statusOnLockScreen = this[STATUS_ON_LOCK_SCREEN] ?: defaults.statusOnLockScreen,
         )
     }
 
@@ -120,6 +123,7 @@ class SettingsRepository(context: Context) {
         this[THEME_MODE] = s.themeMode.name
         this[DYNAMIC_COLOR] = s.dynamicColor
         this[STATUS_NOTIFICATION] = s.statusNotification
+        this[STATUS_ON_LOCK_SCREEN] = s.statusOnLockScreen
     }
 
     private companion object {
@@ -145,5 +149,6 @@ class SettingsRepository(context: Context) {
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val STATUS_NOTIFICATION = booleanPreferencesKey("status_notification")
+        val STATUS_ON_LOCK_SCREEN = booleanPreferencesKey("status_on_lock_screen")
     }
 }

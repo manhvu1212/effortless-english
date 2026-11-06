@@ -237,6 +237,8 @@
         <item quantity="other">%d thẻ cần ôn</item>
     </plurals>
     <string name="status_setting">Thông báo cố định với tiến độ hôm nay</string>
+    <string name="status_lock_screen">Hiện trên màn hình khoá</string>
+    <string name="status_lock_screen_hint">Khi tắt, thông báo không hiện trên màn hình khoá có mã PIN, hình vẽ, mật khẩu hoặc vân tay</string>
     <string name="status_setting_hint">Luôn hiện trên thanh thông báo: số phút đã nghe, bước học tiếp theo và thẻ cần ôn</string>
     <string name="remind_title">Đến giờ học tiếng Anh</string>
     <plurals name="remind_steps">

@@ -101,7 +101,8 @@ object StudyStatus {
             .setSilent(true)
             .setShowWhen(false)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            // The channel does not override this, so the notification decides for itself.
+            .setVisibility(if (settings.statusOnLockScreen) NotificationCompat.VISIBILITY_PUBLIC else NotificationCompat.VISIBILITY_SECRET)
             .build()
         @Suppress("MissingPermission")
         manager.notify(ID, notification)
