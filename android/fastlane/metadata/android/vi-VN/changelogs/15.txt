@@ -1,0 +1,2 @@
+• Thẻ ôn tập trên màn hình khoá: một từ vựng hoặc câu ngẫu nhiên của các bài đã học, đổi mỗi lần tắt màn hình; bấm "Xem nghĩa" hoặc "Câu khác" mà không cần mở khoá
+• Thông báo tiến độ có thể ẩn khỏi màn hình khoá (mặc định ẩn)

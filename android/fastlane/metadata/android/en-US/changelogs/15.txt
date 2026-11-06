@@ -1,0 +1,2 @@
+• Lock-screen review card: a random word or sentence from the lessons studied, changing every time the screen turns off; "Xem nghĩa" and "Câu khác" work without unlocking
+• The progress notification can be hidden from the lock screen (hidden by default)
