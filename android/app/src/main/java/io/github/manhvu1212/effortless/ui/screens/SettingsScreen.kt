@@ -321,6 +321,17 @@ fun SettingsScreen(contentPadding: PaddingValues) {
                         enabled = settings.statusNotification,
                     )
                 }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(stringResource(R.string.review_setting), style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            stringResource(R.string.review_setting_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(settings.reviewCard, { on -> vm.update { it.copy(reviewCard = on) } })
+                }
             }
         }
         item {

@@ -101,6 +101,9 @@ object StudyStatus {
             .setSilent(true)
             .setShowWhen(false)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
+            // Its own group: Android would otherwise bundle it with the review card, and the bundle
+            // takes the secret visibility, hiding the card on the lock screen too.
+            .setGroup("status")
             // The channel does not override this, so the notification decides for itself.
             .setVisibility(if (settings.statusOnLockScreen) NotificationCompat.VISIBILITY_PUBLIC else NotificationCompat.VISIBILITY_SECRET)
             .build()

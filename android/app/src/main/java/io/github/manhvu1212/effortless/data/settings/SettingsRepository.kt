@@ -54,6 +54,8 @@ data class Settings(
     val statusNotification: Boolean = true,
     /** Off: hidden on a secure lock screen (PIN, pattern, password, fingerprint). */
     val statusOnLockScreen: Boolean = false,
+    /** A random word or sentence of the lessons studied, on the lock screen. */
+    val reviewCard: Boolean = true,
 )
 
 private val Context.dataStore by preferencesDataStore(name = "settings")
@@ -97,6 +99,7 @@ class SettingsRepository(context: Context) {
             dynamicColor = this[DYNAMIC_COLOR] ?: defaults.dynamicColor,
             statusNotification = this[STATUS_NOTIFICATION] ?: defaults.statusNotification,
             statusOnLockScreen = this[STATUS_ON_LOCK_SCREEN] ?: defaults.statusOnLockScreen,
+            reviewCard = this[REVIEW_CARD] ?: defaults.reviewCard,
         )
     }
 
@@ -124,6 +127,7 @@ class SettingsRepository(context: Context) {
         this[DYNAMIC_COLOR] = s.dynamicColor
         this[STATUS_NOTIFICATION] = s.statusNotification
         this[STATUS_ON_LOCK_SCREEN] = s.statusOnLockScreen
+        this[REVIEW_CARD] = s.reviewCard
     }
 
     private companion object {
@@ -150,5 +154,6 @@ class SettingsRepository(context: Context) {
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val STATUS_NOTIFICATION = booleanPreferencesKey("status_notification")
         val STATUS_ON_LOCK_SCREEN = booleanPreferencesKey("status_on_lock_screen")
+        val REVIEW_CARD = booleanPreferencesKey("review_card")
     }
 }

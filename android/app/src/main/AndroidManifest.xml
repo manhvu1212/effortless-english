@@ -62,6 +62,9 @@
             android:name=".reminders.StatusReceiver"
             android:exported="false" />
         <receiver
+            android:name=".reminders.ReviewReceiver"
+            android:exported="false" />
+        <receiver
             android:name=".reminders.ReminderReceiver"
             android:exported="false" />
 

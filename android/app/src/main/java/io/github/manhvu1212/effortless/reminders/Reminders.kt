@@ -173,6 +173,7 @@ class RescheduleReceiver : BroadcastReceiver() {
             try {
                 ReminderScheduler.rescheduleAll(context, container.settings.current())
                 StudyStatus.refresh(context, container)
+                ReviewCard.show(context, container)
             } finally {
                 pending.finish()
             }
